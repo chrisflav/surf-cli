@@ -11,21 +11,9 @@ from typing import Optional
 
 import typer
 
-from surf_cli.client import SurfClient
+from surf_cli.formatting import OutputFormat, get_client, print_json, print_output
 
 app = typer.Typer(help="Manage SURF Research Cloud workspaces.")
-
-
-def _get_client() -> SurfClient:
-    try:
-        return SurfClient()
-    except ValueError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
-
-
-def _print_json(data: object) -> None:
-    typer.echo(json.dumps(data, indent=2))
 
 
 @app.command("list")
@@ -57,9 +45,12 @@ def list_workspaces(
         ),
     ),
     wallet_id: Optional[str] = typer.Option(None, "--wallet-id", "-w", help="Filter by wallet ID."),
+    fmt: OutputFormat = typer.Option(
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+    ),
 ) -> None:
     """List workspaces accessible to the authenticated user."""
-    with _get_client() as client:
+    with get_client() as client:
         data = client.get(
             "/workspaces/",
             application_type=application_type,
@@ -72,17 +63,20 @@ def list_workspaces(
             status=status,
             wallet_id=wallet_id,
         )
-    _print_json(data)
+    print_output(data, fmt)
 
 
 @app.command("get")
 def get_workspace(
     workspace_id: str = typer.Argument(..., help="Workspace ID."),
+    fmt: OutputFormat = typer.Option(
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+    ),
 ) -> None:
     """Retrieve a workspace by ID."""
-    with _get_client() as client:
+    with get_client() as client:
         data = client.get(f"/workspaces/{workspace_id}/")
-    _print_json(data)
+    print_output(data, fmt)
 
 
 @app.command("create")
@@ -109,10 +103,10 @@ def create_workspace(
         typer.echo(f"Invalid JSON payload: {exc}", err=True)
         raise typer.Exit(1) from exc
 
-    with _get_client() as client:
+    with get_client() as client:
         client._http.headers["Content-Type"] = f"application/json;{application_type}"
         data = client.post("/workspaces/", json=body)
-    _print_json(data)
+    print_json(data)
 
 
 @app.command("update")
@@ -136,9 +130,9 @@ def update_workspace(
         typer.echo("Provide at least --name or --end-time.", err=True)
         raise typer.Exit(1)
 
-    with _get_client() as client:
+    with get_client() as client:
         data = client.patch(f"/workspaces/{workspace_id}/", json=body)
-    _print_json(data)
+    print_json(data)
 
 
 @app.command("delete")
@@ -149,7 +143,7 @@ def delete_workspace(
     """Delete a workspace by ID."""
     if not confirm:
         typer.confirm(f"Delete workspace {workspace_id}?", abort=True)
-    with _get_client() as client:
+    with get_client() as client:
         client.delete(f"/workspaces/{workspace_id}/")
     typer.echo(f"Workspace {workspace_id} deleted.")
 
@@ -181,12 +175,12 @@ def workspace_action(
             typer.echo(f"Invalid JSON params: {exc}", err=True)
             raise typer.Exit(1) from exc
 
-    with _get_client() as client:
+    with get_client() as client:
         data = client.post(
             f"/workspaces/{workspace_id}/actions/{action_type}/",
             json=body,
         )
-    _print_json(data)
+    print_json(data)
 
 
 @app.command("actions")
@@ -211,9 +205,9 @@ def workspace_actions(
         typer.echo("Payload must be a JSON array of action objects.", err=True)
         raise typer.Exit(1)
 
-    with _get_client() as client:
+    with get_client() as client:
         data = client.post(f"/workspaces/{workspace_id}/actions/", json=body)
-    _print_json(data)
+    print_json(data)
 
 
 @app.command("change-wallet")
@@ -227,9 +221,9 @@ def change_wallet(
     if wallet_name is not None:
         body["wallet_name"] = wallet_name
 
-    with _get_client() as client:
+    with get_client() as client:
         data = client.patch(f"/workspaces/{workspace_id}/change_wallet/", json=body)
-    _print_json(data)
+    print_json(data)
 
 
 @app.command("claim-ownership")
@@ -237,9 +231,9 @@ def claim_ownership(
     workspace_id: str = typer.Argument(..., help="Workspace ID."),
 ) -> None:
     """Claim ownership of a workspace (WS admin only)."""
-    with _get_client() as client:
+    with get_client() as client:
         data = client.patch(f"/workspaces/{workspace_id}/claim_ownership/", json={})
-    _print_json(data)
+    print_json(data)
 
 
 @app.command("logs")
@@ -247,7 +241,7 @@ def get_logs(
     workspace_id: str = typer.Argument(..., help="Workspace ID."),
 ) -> None:
     """Retrieve the logs for a workspace."""
-    with _get_client() as client:
+    with get_client() as client:
         response = client._http.get(f"/workspaces/{workspace_id}/logs/")
         response.raise_for_status()
         typer.echo(response.text)
