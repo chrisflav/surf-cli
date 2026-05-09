@@ -55,6 +55,25 @@ class TestListWorkspaces:
         data = json.loads(result.output)
         assert data["count"] == 1
 
+    def test_list_format_json(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/",
+            json=PAGINATED_RESPONSE,
+        )
+        result = runner.invoke(app, ["workspace", "list", "--format", "json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["count"] == 1
+
+    def test_list_format_table(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/",
+            json=PAGINATED_RESPONSE,
+        )
+        result = runner.invoke(app, ["workspace", "list", "--format", "table"])
+        assert result.exit_code == 0
+        assert "━" in result.output
+
     def test_list_with_filters(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(
             url=f"{BASE_URL}/workspaces/?application_type=Compute&status=running",
@@ -139,6 +158,25 @@ class TestGetWorkspace:
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert data["id"] == WORKSPACE_ID
+
+    def test_get_format_json(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/",
+            json=SAMPLE_WORKSPACE,
+        )
+        result = runner.invoke(app, ["workspace", "get", WORKSPACE_ID, "--format", "json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["id"] == WORKSPACE_ID
+
+    def test_get_format_table(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/",
+            json=SAMPLE_WORKSPACE,
+        )
+        result = runner.invoke(app, ["workspace", "get", WORKSPACE_ID, "--format", "table"])
+        assert result.exit_code == 0
+        assert WORKSPACE_ID in result.output
 
     def test_get_not_found(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(

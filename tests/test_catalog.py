@@ -43,6 +43,26 @@ class TestListCatalog:
         data = json.loads(result.output)
         assert data["count"] == 1
 
+    def test_list_format_json(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/catalog/",
+            json=PAGINATED_RESPONSE,
+        )
+        result = runner.invoke(app, ["catalog", "list", "--format", "json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["count"] == 1
+
+    def test_list_format_table(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/catalog/",
+            json=PAGINATED_RESPONSE,
+        )
+        result = runner.invoke(app, ["catalog", "list", "--format", "table"])
+        assert result.exit_code == 0
+        assert "━" in result.output
+        assert "Jupyter" in result.output
+
     def test_list_with_name_filter(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(
             url=f"{BASE_URL}/catalog/?name=Jupyter",
@@ -93,6 +113,25 @@ class TestGetCatalogItem:
         data = json.loads(result.output)
         assert data["id"] == ITEM_ID
         assert data["name"] == "Jupyter Notebook"
+
+    def test_get_format_json(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/catalog/{ITEM_ID}/",
+            json=SAMPLE_CATALOG_ITEM,
+        )
+        result = runner.invoke(app, ["catalog", "get", ITEM_ID, "--format", "json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["id"] == ITEM_ID
+
+    def test_get_format_table(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/catalog/{ITEM_ID}/",
+            json=SAMPLE_CATALOG_ITEM,
+        )
+        result = runner.invoke(app, ["catalog", "get", ITEM_ID, "--format", "table"])
+        assert result.exit_code == 0
+        assert ITEM_ID in result.output
 
     def test_get_not_found(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(
