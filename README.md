@@ -42,6 +42,26 @@ Run `surf --help` to see all available commands.
 | `-V`, `--version` | Print the version and exit. |
 | `--help` | Show help and exit. |
 
+### Output formats
+
+Most read commands (`list`, `get`, `members`) accept a `-f` / `--format` option that controls how results are printed:
+
+| Value | Description |
+|-------|-------------|
+| `json` | Pretty-printed JSON (default). |
+| `table` | Formatted table rendered with [Rich](https://github.com/Textualize/rich). |
+
+```bash
+# JSON output (default)
+surf workspace list
+
+# Table output
+surf workspace list --format table
+surf catalog list -f table
+```
+
+Write commands (`create`, `update`, `delete`, `action`, etc.) always output JSON.
+
 ---
 
 ## Command groups
@@ -81,14 +101,19 @@ surf workspace list [OPTIONS]
 | `--offset INTEGER` | Pagination offset. |
 | `-s`, `--status TEXT` | Filter by status (e.g. `running`, `paused`, `failed`). |
 | `-w`, `--wallet-id TEXT` | Filter by wallet ID. |
+| `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
 ### workspace get
 
 Get details of a specific workspace.
 
 ```bash
-surf workspace get WORKSPACE_ID
+surf workspace get WORKSPACE_ID [OPTIONS]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
 ### workspace create
 
@@ -232,14 +257,19 @@ surf catalog list [OPTIONS]
 | `-n`, `--name TEXT` | Search by catalog item name. |
 | `--offset INTEGER` | Pagination offset. |
 | `-t`, `--type TEXT` | Filter by type: `Compute`, `Storage`, `IP`, or `Network`. |
+| `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
 ### catalog get
 
 Get details of a specific catalog item.
 
 ```bash
-surf catalog get ITEM_ID
+surf catalog get ITEM_ID [OPTIONS]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
 ---
 
@@ -267,14 +297,19 @@ surf storage list [OPTIONS]
 | `--offset INTEGER` | Pagination offset. |
 | `-s`, `--status TEXT` | Filter by status (e.g. `available`, `in-use`, `creating`). |
 | `-w`, `--wallet-id TEXT` | Filter by wallet ID. |
+| `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
 ### storage get
 
 Get details of a specific storage volume.
 
 ```bash
-surf storage get STORAGE_ID
+surf storage get STORAGE_ID [OPTIONS]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
 ### storage create
 
@@ -339,14 +374,19 @@ surf co list [OPTIONS]
 | `-l`, `--limit INTEGER` | Maximum number of results to return. |
 | `-n`, `--name TEXT` | Search by collaborative organisation name. |
 | `--offset INTEGER` | Pagination offset. |
+| `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
 ### co get
 
 Get details of a specific collaborative organisation.
 
 ```bash
-surf co get CO_ID
+surf co get CO_ID [OPTIONS]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
 ### co create
 
@@ -400,6 +440,7 @@ surf co members CO_ID [OPTIONS]
 |--------|-------------|
 | `-l`, `--limit INTEGER` | Maximum number of results to return. |
 | `--offset INTEGER` | Pagination offset. |
+| `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
 ### co add-member
 
@@ -450,14 +491,19 @@ surf wallet list [OPTIONS]
 | `-l`, `--limit INTEGER` | Maximum number of results to return. |
 | `-n`, `--name TEXT` | Search by wallet name. |
 | `--offset INTEGER` | Pagination offset. |
+| `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
 ### wallet get
 
 Get details of a specific wallet.
 
 ```bash
-surf wallet get WALLET_ID
+surf wallet get WALLET_ID [OPTIONS]
 ```
+
+| Option | Description |
+|--------|-------------|
+| `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
 ### wallet create
 
