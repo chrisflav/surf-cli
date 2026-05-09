@@ -12,21 +12,9 @@ from typing import Optional
 
 import typer
 
-from surf_cli.client import SurfClient
+from surf_cli.formatting import OutputFormat, get_client, print_json, print_output
 
 app = typer.Typer(help="Manage SURF Research Cloud wallets.")
-
-
-def _get_client() -> SurfClient:
-    try:
-        return SurfClient()
-    except ValueError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
-
-
-def _print_json(data: object) -> None:
-    typer.echo(json.dumps(data, indent=2))
 
 
 @app.command("list")
@@ -43,21 +31,27 @@ def list_wallets(
     offset: Optional[int] = typer.Option(
         None, "--offset", help="Offset for pagination."
     ),
+    fmt: OutputFormat = typer.Option(
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+    ),
 ) -> None:
     """List wallets accessible to the authenticated user."""
-    with _get_client() as client:
+    with get_client() as client:
         data = client.get("/wallets/", co_id=co_id, limit=limit, name=name, offset=offset)
-    _print_json(data)
+    print_output(data, fmt)
 
 
 @app.command("get")
 def get_wallet(
     wallet_id: str = typer.Argument(..., help="Wallet ID."),
+    fmt: OutputFormat = typer.Option(
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+    ),
 ) -> None:
     """Retrieve a wallet by ID."""
-    with _get_client() as client:
+    with get_client() as client:
         data = client.get(f"/wallets/{wallet_id}/")
-    _print_json(data)
+    print_output(data, fmt)
 
 
 @app.command("create")
@@ -80,9 +74,9 @@ def create_wallet(
         typer.echo(f"Invalid JSON payload: {exc}", err=True)
         raise typer.Exit(1) from exc
 
-    with _get_client() as client:
+    with get_client() as client:
         data = client.post("/wallets/", json=body)
-    _print_json(data)
+    print_json(data)
 
 
 @app.command("update")
@@ -106,9 +100,9 @@ def update_wallet(
         typer.echo("Provide at least --name or --description.", err=True)
         raise typer.Exit(1)
 
-    with _get_client() as client:
+    with get_client() as client:
         data = client.patch(f"/wallets/{wallet_id}/", json=body)
-    _print_json(data)
+    print_json(data)
 
 
 @app.command("delete")
@@ -121,6 +115,6 @@ def delete_wallet(
     """Delete a wallet by ID."""
     if not confirm:
         typer.confirm(f"Delete wallet {wallet_id}?", abort=True)
-    with _get_client() as client:
+    with get_client() as client:
         client.delete(f"/wallets/{wallet_id}/")
     typer.echo(f"Wallet {wallet_id} deleted.")

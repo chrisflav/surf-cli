@@ -11,21 +11,9 @@ from typing import Optional
 
 import typer
 
-from surf_cli.client import SurfClient
+from surf_cli.formatting import OutputFormat, get_client, print_json, print_output
 
 app = typer.Typer(help="Manage SURF Research Cloud collaborative organisations.")
-
-
-def _get_client() -> SurfClient:
-    try:
-        return SurfClient()
-    except ValueError as exc:
-        typer.echo(str(exc), err=True)
-        raise typer.Exit(1) from exc
-
-
-def _print_json(data: object) -> None:
-    typer.echo(json.dumps(data, indent=2))
 
 
 @app.command("list")
@@ -39,21 +27,27 @@ def list_cos(
     offset: Optional[int] = typer.Option(
         None, "--offset", help="Offset for pagination."
     ),
+    fmt: OutputFormat = typer.Option(
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+    ),
 ) -> None:
     """List collaborative organisations accessible to the authenticated user."""
-    with _get_client() as client:
+    with get_client() as client:
         data = client.get("/co/", limit=limit, name=name, offset=offset)
-    _print_json(data)
+    print_output(data, fmt)
 
 
 @app.command("get")
 def get_co(
     co_id: str = typer.Argument(..., help="Collaborative organisation ID."),
+    fmt: OutputFormat = typer.Option(
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+    ),
 ) -> None:
     """Retrieve a collaborative organisation by ID."""
-    with _get_client() as client:
+    with get_client() as client:
         data = client.get(f"/co/{co_id}/")
-    _print_json(data)
+    print_output(data, fmt)
 
 
 @app.command("create")
@@ -76,9 +70,9 @@ def create_co(
         typer.echo(f"Invalid JSON payload: {exc}", err=True)
         raise typer.Exit(1) from exc
 
-    with _get_client() as client:
+    with get_client() as client:
         data = client.post("/co/", json=body)
-    _print_json(data)
+    print_json(data)
 
 
 @app.command("update")
@@ -102,9 +96,9 @@ def update_co(
         typer.echo("Provide at least --name or --description.", err=True)
         raise typer.Exit(1)
 
-    with _get_client() as client:
+    with get_client() as client:
         data = client.patch(f"/co/{co_id}/", json=body)
-    _print_json(data)
+    print_json(data)
 
 
 @app.command("delete")
@@ -117,7 +111,7 @@ def delete_co(
     """Delete a collaborative organisation by ID."""
     if not confirm:
         typer.confirm(f"Delete collaborative organisation {co_id}?", abort=True)
-    with _get_client() as client:
+    with get_client() as client:
         client.delete(f"/co/{co_id}/")
     typer.echo(f"Collaborative organisation {co_id} deleted.")
 
@@ -131,11 +125,14 @@ def list_members(
     offset: Optional[int] = typer.Option(
         None, "--offset", help="Offset for pagination."
     ),
+    fmt: OutputFormat = typer.Option(
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+    ),
 ) -> None:
     """List members of a collaborative organisation."""
-    with _get_client() as client:
+    with get_client() as client:
         data = client.get(f"/co/{co_id}/members/", limit=limit, offset=offset)
-    _print_json(data)
+    print_output(data, fmt)
 
 
 @app.command("add-member")
@@ -154,9 +151,9 @@ def add_member(
     if role is not None:
         body["role"] = role
 
-    with _get_client() as client:
+    with get_client() as client:
         data = client.post(f"/co/{co_id}/members/", json=body)
-    _print_json(data)
+    print_json(data)
 
 
 @app.command("remove-member")
@@ -173,6 +170,6 @@ def remove_member(
             f"Remove user {user_id} from collaborative organisation {co_id}?",
             abort=True,
         )
-    with _get_client() as client:
+    with get_client() as client:
         client.delete(f"/co/{co_id}/members/{user_id}/")
     typer.echo(f"User {user_id} removed from collaborative organisation {co_id}.")
