@@ -3,7 +3,7 @@
 import typer
 
 from surf_cli import __version__
-from surf_cli.commands import workspaces
+from surf_cli.commands import catalog, workspaces
 
 app = typer.Typer(
     name="surf",
@@ -12,6 +12,7 @@ app = typer.Typer(
 )
 
 app.add_typer(workspaces.app, name="workspace")
+app.add_typer(catalog.app, name="catalog")
 
 
 def version_callback(value: bool) -> None:
