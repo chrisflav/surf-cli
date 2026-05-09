@@ -45,6 +45,20 @@ MEMBERS_RESPONSE = {
 
 
 class TestListCOs:
+    def test_list_format_json(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(url=f"{BASE_URL}/co/", json=PAGINATED_RESPONSE)
+        result = runner.invoke(app, ["co", "list", "--format", "json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["count"] == 1
+
+    def test_list_format_table(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(url=f"{BASE_URL}/co/", json=PAGINATED_RESPONSE)
+        result = runner.invoke(app, ["co", "list", "--format", "table"])
+        assert result.exit_code == 0
+        assert "━" in result.output
+        assert "My Organisation" in result.output
+
     def test_list_basic(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(url=f"{BASE_URL}/co/", json=PAGINATED_RESPONSE)
         result = runner.invoke(app, ["co", "list"])
@@ -74,6 +88,19 @@ class TestListCOs:
 
 
 class TestGetCO:
+    def test_get_format_json(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(url=f"{BASE_URL}/co/{CO_ID}/", json=SAMPLE_CO)
+        result = runner.invoke(app, ["co", "get", CO_ID, "--format", "json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["id"] == CO_ID
+
+    def test_get_format_table(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(url=f"{BASE_URL}/co/{CO_ID}/", json=SAMPLE_CO)
+        result = runner.invoke(app, ["co", "get", CO_ID, "--format", "table"])
+        assert result.exit_code == 0
+        assert CO_ID in result.output
+
     def test_get(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(url=f"{BASE_URL}/co/{CO_ID}/", json=SAMPLE_CO)
         result = runner.invoke(app, ["co", "get", CO_ID])
@@ -159,6 +186,24 @@ class TestDeleteCO:
 
 
 class TestListMembers:
+    def test_list_members_format_json(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/co/{CO_ID}/members/", json=MEMBERS_RESPONSE
+        )
+        result = runner.invoke(app, ["co", "members", CO_ID, "--format", "json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["count"] == 1
+
+    def test_list_members_format_table(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/co/{CO_ID}/members/", json=MEMBERS_RESPONSE
+        )
+        result = runner.invoke(app, ["co", "members", CO_ID, "--format", "table"])
+        assert result.exit_code == 0
+        assert "━" in result.output
+        assert USER_ID in result.output
+
     def test_list_members(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(
             url=f"{BASE_URL}/co/{CO_ID}/members/", json=MEMBERS_RESPONSE

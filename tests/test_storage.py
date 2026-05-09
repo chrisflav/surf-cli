@@ -36,6 +36,26 @@ PAGINATED_RESPONSE = {
 
 
 class TestListStorage:
+    def test_list_format_json(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/storage/",
+            json=PAGINATED_RESPONSE,
+        )
+        result = runner.invoke(app, ["storage", "list", "--format", "json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["count"] == 1
+
+    def test_list_format_table(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/storage/",
+            json=PAGINATED_RESPONSE,
+        )
+        result = runner.invoke(app, ["storage", "list", "--format", "table"])
+        assert result.exit_code == 0
+        assert "━" in result.output
+        assert "stor-" in result.output
+
     def test_list_basic(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(
             url=f"{BASE_URL}/storage/",
@@ -96,6 +116,25 @@ class TestListStorage:
 
 
 class TestGetStorage:
+    def test_get_format_json(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/storage/{STORAGE_ID}/",
+            json=SAMPLE_STORAGE,
+        )
+        result = runner.invoke(app, ["storage", "get", STORAGE_ID, "--format", "json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["id"] == STORAGE_ID
+
+    def test_get_format_table(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/storage/{STORAGE_ID}/",
+            json=SAMPLE_STORAGE,
+        )
+        result = runner.invoke(app, ["storage", "get", STORAGE_ID, "--format", "table"])
+        assert result.exit_code == 0
+        assert STORAGE_ID in result.output
+
     def test_get(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(
             url=f"{BASE_URL}/storage/{STORAGE_ID}/",
