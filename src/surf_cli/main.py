@@ -3,12 +3,15 @@
 import typer
 
 from surf_cli import __version__
+from surf_cli.commands import workspaces
 
 app = typer.Typer(
     name="surf",
     help="CLI for interacting with SURF Research Cloud (surfresearchcloud.nl).",
     no_args_is_help=True,
 )
+
+app.add_typer(workspaces.app, name="workspace")
 
 
 def version_callback(value: bool) -> None:
