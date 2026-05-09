@@ -43,10 +43,6 @@ PAGINATED_RESPONSE = {
 }
 
 
-@pytest.fixture(autouse=True)
-def set_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv(TOKEN_ENV_VAR, "test-token")
-
 
 class TestListWorkspaces:
     def test_list_basic(self, httpx_mock: HTTPXMock) -> None:
@@ -77,6 +73,55 @@ class TestListWorkspaces:
         result = runner.invoke(app, ["workspace", "list", "--limit", "10", "--offset", "0"])
         assert result.exit_code == 0
 
+    def test_list_by_owner(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/?by_owner=true",
+            json=PAGINATED_RESPONSE,
+        )
+        result = runner.invoke(app, ["workspace", "list", "--by-owner", "true"])
+        assert result.exit_code == 0
+
+    def test_list_with_name_filter(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/?name=My+Workspace",
+            json=PAGINATED_RESPONSE,
+        )
+        result = runner.invoke(app, ["workspace", "list", "--name", "My Workspace"])
+        assert result.exit_code == 0
+
+    def test_list_with_co_id_filter(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/?co_id=co-1",
+            json=PAGINATED_RESPONSE,
+        )
+        result = runner.invoke(app, ["workspace", "list", "--co-id", "co-1"])
+        assert result.exit_code == 0
+
+    def test_list_with_wallet_id_filter(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/?wallet_id=wallet-1",
+            json=PAGINATED_RESPONSE,
+        )
+        result = runner.invoke(app, ["workspace", "list", "--wallet-id", "wallet-1"])
+        assert result.exit_code == 0
+
+    def test_list_with_deleted_filter(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/?deleted=true",
+            json=PAGINATED_RESPONSE,
+        )
+        result = runner.invoke(app, ["workspace", "list", "--deleted", "true"])
+        assert result.exit_code == 0
+
+    def test_list_server_error(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/",
+            status_code=500,
+            json={"detail": "Internal server error."},
+        )
+        result = runner.invoke(app, ["workspace", "list"])
+        assert result.exit_code != 0
+
     def test_list_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
         result = runner.invoke(app, ["workspace", "list"])
@@ -102,6 +147,21 @@ class TestGetWorkspace:
         )
         result = runner.invoke(app, ["workspace", "get", WORKSPACE_ID])
         assert result.exit_code != 0
+
+    def test_get_auth_error(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/",
+            status_code=401,
+            json={"detail": "Invalid token."},
+        )
+        result = runner.invoke(app, ["workspace", "get", WORKSPACE_ID])
+        assert result.exit_code != 0
+
+    def test_get_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+        result = runner.invoke(app, ["workspace", "get", WORKSPACE_ID])
+        assert result.exit_code == 1
+        assert TOKEN_ENV_VAR in result.output
 
 
 class TestCreateWorkspace:

@@ -32,10 +32,6 @@ PAGINATED_RESPONSE = {
 }
 
 
-@pytest.fixture(autouse=True)
-def set_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv(TOKEN_ENV_VAR, "test-token")
-
 
 class TestListWallets:
     def test_list_basic(self, httpx_mock: HTTPXMock) -> None:
