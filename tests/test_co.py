@@ -113,6 +113,12 @@ class TestGetCO:
         result = runner.invoke(app, ["co", "get", CO_ID])
         assert result.exit_code != 0
 
+    def test_get_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+        result = runner.invoke(app, ["co", "get", CO_ID])
+        assert result.exit_code == 1
+        assert TOKEN_ENV_VAR in result.output
+
 
 class TestCreateCO:
     def test_create(self, httpx_mock: HTTPXMock) -> None:
@@ -163,6 +169,12 @@ class TestUpdateCO:
         assert result.exit_code == 1
         assert "at least" in result.output
 
+    def test_update_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+        result = runner.invoke(app, ["co", "update", CO_ID, "--name", "x"])
+        assert result.exit_code == 1
+        assert TOKEN_ENV_VAR in result.output
+
 
 class TestDeleteCO:
     def test_delete_with_confirm_flag(self, httpx_mock: HTTPXMock) -> None:
@@ -183,6 +195,12 @@ class TestDeleteCO:
         )
         result = runner.invoke(app, ["co", "delete", CO_ID], input="y\n")
         assert result.exit_code == 0
+
+    def test_delete_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+        result = runner.invoke(app, ["co", "delete", CO_ID, "--yes"])
+        assert result.exit_code == 1
+        assert TOKEN_ENV_VAR in result.output
 
 
 class TestListMembers:
@@ -223,6 +241,12 @@ class TestListMembers:
         )
         assert result.exit_code == 0
 
+    def test_list_members_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+        result = runner.invoke(app, ["co", "members", CO_ID])
+        assert result.exit_code == 1
+        assert TOKEN_ENV_VAR in result.output
+
 
 class TestAddMember:
     def test_add_member(self, httpx_mock: HTTPXMock) -> None:
@@ -247,6 +271,12 @@ class TestAddMember:
             ["co", "add-member", CO_ID, "--user-id", USER_ID, "--role", "admin"],
         )
         assert result.exit_code == 0
+
+    def test_add_member_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+        result = runner.invoke(app, ["co", "add-member", CO_ID, "--user-id", USER_ID])
+        assert result.exit_code == 1
+        assert TOKEN_ENV_VAR in result.output
 
 
 class TestRemoveMember:
@@ -278,3 +308,9 @@ class TestRemoveMember:
             app, ["co", "remove-member", CO_ID, USER_ID], input="y\n"
         )
         assert result.exit_code == 0
+
+    def test_remove_member_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+        result = runner.invoke(app, ["co", "remove-member", CO_ID, USER_ID, "--yes"])
+        assert result.exit_code == 1
+        assert TOKEN_ENV_VAR in result.output
