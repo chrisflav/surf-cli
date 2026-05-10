@@ -1,5 +1,7 @@
 # surf-cli
 
+[![CI](https://github.com/chrisflav/surf-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/chrisflav/surf-cli/actions/workflows/ci.yml)
+
 > **Note:** This package is a prototype written by [Claude](https://claude.ai). Review the code
 > before using it in production.
 
