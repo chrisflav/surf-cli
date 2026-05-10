@@ -1,9 +1,13 @@
 """Tests for the CLI entry point."""
 
+import re
+
 from typer.testing import CliRunner
 
 from surf_cli import __version__
 from surf_cli.main import app
+
+_ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*[mGKH]")
 
 runner = CliRunner()
 
@@ -34,4 +38,4 @@ def test_no_args_shows_help() -> None:
 def test_verbose_flag_in_help() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    assert "--verbose" in result.output
+    assert "--verbose" in _ANSI_ESCAPE.sub("", result.output)
