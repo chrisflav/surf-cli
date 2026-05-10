@@ -6,7 +6,15 @@ import pytest
 from typer.testing import CliRunner
 
 from surf_cli.client import TOKEN_ENV_VAR
-from surf_cli.formatting import OutputFormat, print_csv, print_json, print_output, print_table
+from surf_cli.formatting import (
+    OutputFormat,
+    _TABLE_MAX_CELL_WIDTH,
+    _cell,
+    print_csv,
+    print_json,
+    print_output,
+    print_table,
+)
 
 runner = CliRunner()
 
@@ -77,7 +85,50 @@ class TestPrintTable:
     def test_nested_dict_serialized_as_json(self, capsys: pytest.CaptureFixture) -> None:
         print_table([{"id": "1", "meta": {"key": "value"}}])
         captured = capsys.readouterr()
+        # Short enough not to be truncated
         assert '{"key": "value"}' in captured.out
+
+    def test_long_value_truncated(self, capsys: pytest.CaptureFixture) -> None:
+        long_val = "x" * (_TABLE_MAX_CELL_WIDTH + 20)
+        print_table([{"id": "1", "desc": long_val}])
+        captured = capsys.readouterr()
+        assert long_val not in captured.out
+        assert "…" in captured.out
+
+    def test_value_at_max_width_not_truncated(self, capsys: pytest.CaptureFixture) -> None:
+        exact_val = "y" * _TABLE_MAX_CELL_WIDTH
+        print_table([{"id": "1", "desc": exact_val}])
+        captured = capsys.readouterr()
+        assert exact_val in captured.out
+        assert "…" not in captured.out
+
+
+class TestCell:
+    def test_none_returns_empty(self) -> None:
+        assert _cell(None) == ""
+
+    def test_short_string_unchanged(self) -> None:
+        assert _cell("hello") == "hello"
+
+    def test_long_string_truncated(self) -> None:
+        long_val = "a" * (_TABLE_MAX_CELL_WIDTH + 10)
+        result = _cell(long_val)
+        assert len(result) == _TABLE_MAX_CELL_WIDTH
+        assert result.endswith("…")
+
+    def test_exact_width_not_truncated(self) -> None:
+        val = "b" * _TABLE_MAX_CELL_WIDTH
+        assert _cell(val) == val
+
+    def test_dict_truncated_when_long(self) -> None:
+        big_dict = {"key": "v" * _TABLE_MAX_CELL_WIDTH}
+        result = _cell(big_dict)
+        assert len(result) == _TABLE_MAX_CELL_WIDTH
+        assert result.endswith("…")
+
+    def test_custom_max_width(self) -> None:
+        result = _cell("hello world", max_width=5)
+        assert result == "hell…"
 
     def test_fallback_to_json_for_scalar(self, capsys: pytest.CaptureFixture) -> None:
         print_table(42)

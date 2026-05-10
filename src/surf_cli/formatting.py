@@ -61,13 +61,20 @@ def _build_table(rows: list[dict[str, Any]]) -> Table:
     return table
 
 
-def _cell(value: Any) -> str:
-    """Convert a value to a table cell string."""
+_TABLE_MAX_CELL_WIDTH = 40
+
+
+def _cell(value: Any, max_width: int = _TABLE_MAX_CELL_WIDTH) -> str:
+    """Convert a value to a table cell string, truncating to *max_width* chars."""
     if value is None:
         return ""
     if isinstance(value, (dict, list)):
-        return json.dumps(value)
-    return str(value)
+        text = json.dumps(value)
+    else:
+        text = str(value)
+    if len(text) > max_width:
+        return text[: max_width - 1] + "…"
+    return text
 
 
 def print_table(data: Any) -> None:

@@ -40,7 +40,7 @@ class SurfClient:
         self._http = httpx.Client(
             base_url=base_url,
             headers={
-                "Authorization": f"Token {self._token}",
+                "Authorization": self._token,
                 "Accept": "application/json",
             },
             timeout=30,
@@ -80,9 +80,7 @@ class SurfClient:
         print(f"> {request.method} {request.url}", file=sys.stderr)
         for name, value in request.headers.items():
             if name.lower() == "authorization":
-                # Show scheme (e.g. "Token") but redact the credential itself.
-                scheme, _, _ = value.partition(" ")
-                value = f"{scheme} ***"
+                value = "***"
             print(f"> {name}: {value}", file=sys.stderr)
         if request.content:
             print(f">\n> {request.content.decode(errors='replace')}", file=sys.stderr)

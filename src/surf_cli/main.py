@@ -1,13 +1,14 @@
 """Entry point for the surf CLI."""
 
 import os
+import sys
 
 import typer
 
 from surf_cli import __version__
 from surf_cli.commands import catalog, co, storage, wallets, workspaces
 from surf_cli.config import CONFIG_FILE, read_token, write_token
-from surf_cli.exceptions import AuthenticationError
+from surf_cli.exceptions import AuthenticationError, SurfAPIError
 from surf_cli.formatting import get_client
 from surf_cli.state import state
 
@@ -98,5 +99,14 @@ def main(
     state.verbose = verbose
 
 
+def cli() -> None:
+    """Wrapper around app() that catches SurfAPIError and prints a clean message."""
+    try:
+        app()
+    except SurfAPIError as exc:
+        typer.echo(str(exc), err=True)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
-    app()
+    cli()

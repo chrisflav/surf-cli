@@ -37,7 +37,7 @@ def test_client_explicit_token() -> None:
 
 def test_client_authorization_header() -> None:
     client = SurfClient(token="mytoken")
-    assert client._http.headers["Authorization"] == "Token mytoken"
+    assert client._http.headers["Authorization"] == "mytoken"
     client.close()
 
 

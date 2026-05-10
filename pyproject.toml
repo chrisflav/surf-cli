@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-surf = "surf_cli.main:app"
+surf = "surf_cli.main:cli"
 
 [project.optional-dependencies]
 dev = [
