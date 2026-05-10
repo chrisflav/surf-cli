@@ -34,6 +34,20 @@ PAGINATED_RESPONSE = {
 
 
 class TestListWallets:
+    def test_list_format_json(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(url=f"{BASE_URL}/wallets/", json=PAGINATED_RESPONSE)
+        result = runner.invoke(app, ["wallet", "list", "--format", "json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["count"] == 1
+
+    def test_list_format_table(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(url=f"{BASE_URL}/wallets/", json=PAGINATED_RESPONSE)
+        result = runner.invoke(app, ["wallet", "list", "--format", "table"])
+        assert result.exit_code == 0
+        assert "━" in result.output
+        assert "wallet-7" in result.output
+
     def test_list_basic(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(url=f"{BASE_URL}/wallets/", json=PAGINATED_RESPONSE)
         result = runner.invoke(app, ["wallet", "list"])
@@ -72,6 +86,23 @@ class TestListWallets:
 
 
 class TestGetWallet:
+    def test_get_format_json(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/wallets/{WALLET_ID}/", json=SAMPLE_WALLET
+        )
+        result = runner.invoke(app, ["wallet", "get", WALLET_ID, "--format", "json"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["id"] == WALLET_ID
+
+    def test_get_format_table(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/wallets/{WALLET_ID}/", json=SAMPLE_WALLET
+        )
+        result = runner.invoke(app, ["wallet", "get", WALLET_ID, "--format", "table"])
+        assert result.exit_code == 0
+        assert WALLET_ID in result.output
+
     def test_get(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(
             url=f"{BASE_URL}/wallets/{WALLET_ID}/", json=SAMPLE_WALLET
