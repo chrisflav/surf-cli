@@ -312,3 +312,110 @@ def get_logs(
         response = client._http.get(f"/workspaces/{workspace_id}/logs/")
         response.raise_for_status()
         typer.echo(response.text)
+
+
+def _ssh_config_entry(
+    workspace: dict[str, Any],
+    user: Optional[str],
+    identity_file: Optional[str],
+    port: int,
+) -> Optional[str]:
+    """Return an SSH config block for *workspace*, or None if no hostname is available."""
+    resource_meta = workspace.get("resource_meta") or {}
+    meta = workspace.get("meta") or {}
+
+    hostname = (
+        resource_meta.get("ip_address")
+        or resource_meta.get("hostname")
+        or meta.get("ip_address")
+        or meta.get("hostname")
+    )
+    if not hostname:
+        return None
+
+    ws_name = workspace.get("name") or workspace.get("id", "unknown")
+    # Sanitize for use as SSH Host alias (replace spaces/special chars with hyphens).
+    host_alias = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(ws_name))
+
+    effective_user = (
+        user
+        or resource_meta.get("username")
+        or resource_meta.get("user")
+        or meta.get("username")
+        or meta.get("user")
+    )
+    effective_port = (
+        resource_meta.get("ssh_port")
+        or resource_meta.get("port")
+        or meta.get("ssh_port")
+        or meta.get("port")
+        or port
+    )
+
+    lines = [f"Host {host_alias}"]
+    lines.append(f"    HostName {hostname}")
+    if effective_user:
+        lines.append(f"    User {effective_user}")
+    lines.append(f"    Port {effective_port}")
+    if identity_file:
+        lines.append(f"    IdentityFile {identity_file}")
+    lines.append(f"    # Workspace ID: {workspace.get('id', '')}")
+    return "\n".join(lines)
+
+
+@app.command("ssh-config")
+def workspace_ssh_config(
+    workspace_id: Optional[str] = typer.Argument(
+        None,
+        help="Workspace ID. If omitted, generate entries for all accessible workspaces.",
+    ),
+    user: Optional[str] = typer.Option(None, "--user", "-u", help="SSH username to use."),
+    identity_file: Optional[str] = typer.Option(
+        None, "--identity-file", "-i", help="Path to SSH private key file."
+    ),
+    port: int = typer.Option(22, "--port", "-p", help="Default SSH port."),
+    status_filter: Optional[str] = typer.Option(
+        "running",
+        "--status",
+        "-s",
+        help="Only include workspaces with this status. Pass empty string to include all.",
+    ),
+) -> None:
+    """Generate SSH config entries for workspace(s).
+
+    Outputs blocks ready to be appended to ~/.ssh/config. Workspaces without
+    a reachable IP address in their metadata are silently skipped.
+
+    Example usage:
+        surf workspace ssh-config >> ~/.ssh/config
+        surf workspace ssh-config ws-123
+    """
+    entries: list[str] = []
+
+    with get_client() as client:
+        if workspace_id:
+            workspace = client.get(f"/workspaces/{workspace_id}/")
+            entry = _ssh_config_entry(workspace, user, identity_file, port)
+            if entry:
+                entries.append(entry)
+            else:
+                typer.echo(
+                    f"Workspace {workspace_id} has no IP address in its metadata.", err=True
+                )
+                raise typer.Exit(1)
+        else:
+            params: dict[str, Any] = {}
+            if status_filter:
+                params["status"] = status_filter
+            response = client.get("/workspaces/", **params)
+            workspaces = response.get("results", [])
+            for ws in workspaces:
+                entry = _ssh_config_entry(ws, user, identity_file, port)
+                if entry:
+                    entries.append(entry)
+
+    if not entries:
+        typer.echo("No workspaces with SSH connectivity information found.", err=True)
+        return
+
+    typer.echo("\n\n".join(entries))
