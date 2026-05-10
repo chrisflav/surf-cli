@@ -12,6 +12,7 @@ from typing import Optional
 
 import typer
 
+import surf_cli.api.wallets as wallets_api
 from surf_cli.formatting import OutputFormat, get_client, print_json, print_output
 
 app = typer.Typer(help="Manage SURF Research Cloud wallets.")
@@ -43,7 +44,7 @@ def list_wallets(
         typer.echo("--offset must be a non-negative integer.", err=True)
         raise typer.Exit(1)
     with get_client() as client:
-        data = client.get("/wallets/", co_id=co_id, limit=limit, name=name, offset=offset)
+        data = wallets_api.list_wallets(client, co_id=co_id, limit=limit, name=name, offset=offset)
     print_output(data, fmt)
 
 
@@ -56,7 +57,7 @@ def get_wallet(
 ) -> None:
     """Retrieve a wallet by ID."""
     with get_client() as client:
-        data = client.get(f"/wallets/{wallet_id}/")
+        data = wallets_api.get_wallet(client, wallet_id)
     print_output(data, fmt)
 
 
@@ -81,7 +82,7 @@ def create_wallet(
         raise typer.Exit(1) from exc
 
     with get_client() as client:
-        data = client.post("/wallets/", json=body)
+        data = wallets_api.create_wallet(client, body)
     print_json(data)
 
 
@@ -107,7 +108,7 @@ def update_wallet(
         raise typer.Exit(1)
 
     with get_client() as client:
-        data = client.patch(f"/wallets/{wallet_id}/", json=body)
+        data = wallets_api.update_wallet(client, wallet_id, body)
     print_json(data)
 
 
@@ -122,5 +123,5 @@ def delete_wallet(
     if not confirm:
         typer.confirm(f"Delete wallet {wallet_id}?", abort=True)
     with get_client() as client:
-        client.delete(f"/wallets/{wallet_id}/")
+        wallets_api.delete_wallet(client, wallet_id)
     typer.echo(f"Wallet {wallet_id} deleted.")

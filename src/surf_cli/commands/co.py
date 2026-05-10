@@ -11,6 +11,7 @@ from typing import Optional
 
 import typer
 
+import surf_cli.api.co as co_api
 from surf_cli.formatting import OutputFormat, get_client, print_json, print_output
 
 app = typer.Typer(help="Manage SURF Research Cloud collaborative organisations.")
@@ -39,7 +40,7 @@ def list_cos(
         typer.echo("--offset must be a non-negative integer.", err=True)
         raise typer.Exit(1)
     with get_client() as client:
-        data = client.get("/co/", limit=limit, name=name, offset=offset)
+        data = co_api.list_cos(client, limit=limit, name=name, offset=offset)
     print_output(data, fmt)
 
 
@@ -52,7 +53,7 @@ def get_co(
 ) -> None:
     """Retrieve a collaborative organisation by ID."""
     with get_client() as client:
-        data = client.get(f"/co/{co_id}/")
+        data = co_api.get_co(client, co_id)
     print_output(data, fmt)
 
 
@@ -77,7 +78,7 @@ def create_co(
         raise typer.Exit(1) from exc
 
     with get_client() as client:
-        data = client.post("/co/", json=body)
+        data = co_api.create_co(client, body)
     print_json(data)
 
 
@@ -103,7 +104,7 @@ def update_co(
         raise typer.Exit(1)
 
     with get_client() as client:
-        data = client.patch(f"/co/{co_id}/", json=body)
+        data = co_api.update_co(client, co_id, body)
     print_json(data)
 
 
@@ -118,7 +119,7 @@ def delete_co(
     if not confirm:
         typer.confirm(f"Delete collaborative organisation {co_id}?", abort=True)
     with get_client() as client:
-        client.delete(f"/co/{co_id}/")
+        co_api.delete_co(client, co_id)
     typer.echo(f"Collaborative organisation {co_id} deleted.")
 
 
@@ -143,7 +144,7 @@ def list_members(
         typer.echo("--offset must be a non-negative integer.", err=True)
         raise typer.Exit(1)
     with get_client() as client:
-        data = client.get(f"/co/{co_id}/members/", limit=limit, offset=offset)
+        data = co_api.list_members(client, co_id, limit=limit, offset=offset)
     print_output(data, fmt)
 
 
@@ -164,7 +165,7 @@ def add_member(
         body["role"] = role
 
     with get_client() as client:
-        data = client.post(f"/co/{co_id}/members/", json=body)
+        data = co_api.add_member(client, co_id, body)
     print_json(data)
 
 
@@ -183,5 +184,5 @@ def remove_member(
             abort=True,
         )
     with get_client() as client:
-        client.delete(f"/co/{co_id}/members/{user_id}/")
+        co_api.remove_member(client, co_id, user_id)
     typer.echo(f"User {user_id} removed from collaborative organisation {co_id}.")

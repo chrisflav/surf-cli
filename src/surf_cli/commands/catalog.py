@@ -11,6 +11,7 @@ from typing import Optional
 
 import typer
 
+import surf_cli.api.catalog as catalog_api
 from surf_cli.formatting import OutputFormat, get_client, print_output
 
 app = typer.Typer(help="Browse the SURF Research Cloud catalog.")
@@ -48,13 +49,8 @@ def list_catalog(
         typer.echo("--offset must be a non-negative integer.", err=True)
         raise typer.Exit(1)
     with get_client() as client:
-        data = client.get(
-            "/catalog/",
-            co_id=co_id,
-            limit=limit,
-            name=name,
-            offset=offset,
-            type=type_,
+        data = catalog_api.list_catalog(
+            client, co_id=co_id, limit=limit, name=name, offset=offset, type_=type_
         )
     print_output(data, fmt)
 
@@ -68,5 +64,5 @@ def get_catalog_item(
 ) -> None:
     """Retrieve a catalog item by ID."""
     with get_client() as client:
-        data = client.get(f"/catalog/{item_id}/")
+        data = catalog_api.get_catalog_item(client, item_id)
     print_output(data, fmt)

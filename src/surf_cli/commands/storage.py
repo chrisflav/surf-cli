@@ -12,6 +12,7 @@ from typing import Optional
 
 import typer
 
+import surf_cli.api.storage as storage_api
 from surf_cli.formatting import OutputFormat, get_client, print_json, print_output
 
 app = typer.Typer(help="Manage SURF Research Cloud storage volumes.")
@@ -55,14 +56,9 @@ def list_storage(
         typer.echo("--offset must be a non-negative integer.", err=True)
         raise typer.Exit(1)
     with get_client() as client:
-        data = client.get(
-            "/storage/",
-            co_id=co_id,
-            limit=limit,
-            name=name,
-            offset=offset,
-            status=status,
-            wallet_id=wallet_id,
+        data = storage_api.list_storage(
+            client, co_id=co_id, limit=limit, name=name, offset=offset,
+            status=status, wallet_id=wallet_id
         )
     print_output(data, fmt)
 
@@ -76,7 +72,7 @@ def get_storage(
 ) -> None:
     """Retrieve a storage volume by ID."""
     with get_client() as client:
-        data = client.get(f"/storage/{storage_id}/")
+        data = storage_api.get_storage(client, storage_id)
     print_output(data, fmt)
 
 
@@ -101,7 +97,7 @@ def create_storage(
         raise typer.Exit(1) from exc
 
     with get_client() as client:
-        data = client.post("/storage/", json=body)
+        data = storage_api.create_storage(client, body)
     print_json(data)
 
 
@@ -129,7 +125,7 @@ def update_storage(
         raise typer.Exit(1)
 
     with get_client() as client:
-        data = client.patch(f"/storage/{storage_id}/", json=body)
+        data = storage_api.update_storage(client, storage_id, body)
     print_json(data)
 
 
@@ -144,5 +140,5 @@ def delete_storage(
     if not confirm:
         typer.confirm(f"Delete storage volume {storage_id}?", abort=True)
     with get_client() as client:
-        client.delete(f"/storage/{storage_id}/")
+        storage_api.delete_storage(client, storage_id)
     typer.echo(f"Storage volume {storage_id} deleted.")

@@ -13,6 +13,7 @@ from enum import Enum
 from typing import Any
 
 import typer
+from pydantic import BaseModel
 from rich.console import Console
 from rich.table import Table
 
@@ -40,9 +41,16 @@ def get_client() -> SurfClient:
         raise typer.Exit(1) from exc
 
 
+def _to_serializable(data: Any) -> Any:
+    """Convert a pydantic model (or nested structure) to a plain Python object."""
+    if isinstance(data, BaseModel):
+        return data.model_dump(exclude_unset=True)
+    return data
+
+
 def print_json(data: object) -> None:
     """Print *data* as pretty-printed JSON."""
-    typer.echo(json.dumps(data, indent=2))
+    typer.echo(json.dumps(_to_serializable(data), indent=2))
 
 
 def _build_table(rows: list[dict[str, Any]]) -> Table:
@@ -152,9 +160,10 @@ def print_csv(data: Any) -> None:
 
 def print_output(data: Any, fmt: OutputFormat) -> None:
     """Dispatch to the appropriate formatter based on *fmt*."""
+    serializable = _to_serializable(data)
     if fmt == OutputFormat.table:
-        print_table(data)
+        print_table(serializable)
     elif fmt == OutputFormat.csv:
-        print_csv(data)
+        print_csv(serializable)
     else:
-        print_json(data)
+        print_json(serializable)

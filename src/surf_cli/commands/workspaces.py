@@ -10,13 +10,33 @@ import json
 import time
 from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import typer
 
-from surf_cli.formatting import OutputFormat, get_client, print_json, print_output
+import surf_cli.api.workspaces as ws_api
+from surf_cli.formatting import OutputFormat, get_client, print_json, print_output, _to_serializable
+from surf_cli.models import (
+    ActionRequestNsgsSchema,
+    ActionRequestStorageSchema,
+    AnyWorkspace,
+    PaginatedComputeWorkspaceList,
+    PaginatedIpWorkspaceList,
+    PaginatedNetworkWorkspaceList,
+    PaginatedStorageWorkspaceList,
+    PatchedWorkspaceChangeWalletRequest,
+    PatchedWorkspaceUpdate,
+    WorkspaceActionsRequest,
+)
 
 app = typer.Typer(help="Manage SURF Research Cloud workspaces.")
+
+_PAGINATED_TYPES = (
+    PaginatedComputeWorkspaceList,
+    PaginatedStorageWorkspaceList,
+    PaginatedIpWorkspaceList,
+    PaginatedNetworkWorkspaceList,
+)
 
 
 def _watch_loop(
@@ -39,16 +59,12 @@ def _watch_loop(
 
             if until_status:
                 reached = False
-                if isinstance(data, dict):
-                    results = data.get("results")
-                    if isinstance(results, list):
-                        # Paginated response: stop if any item matches the target status.
-                        reached = any(
-                            isinstance(item, dict) and item.get("status") == until_status
-                            for item in results
-                        )
-                    else:
-                        reached = data.get("status") == until_status
+                if isinstance(data, _PAGINATED_TYPES):
+                    reached = any(
+                        item.status == until_status for item in data.results
+                    )
+                elif hasattr(data, "status"):
+                    reached = data.status == until_status
                 if reached:
                     break
 
@@ -107,8 +123,8 @@ def list_workspaces(
 
     def _fetch() -> Any:
         with get_client() as client:
-            return client.get(
-                "/workspaces/",
+            return ws_api.list_workspaces(
+                client,
                 application_type=application_type,
                 by_owner=by_owner,
                 co_id=co_id,
@@ -120,10 +136,24 @@ def list_workspaces(
                 wallet_id=wallet_id,
             )
 
+    _LIST_TABLE_COLUMNS = ("id", "name", "description", "status", "time_created", "time_deleted")
+
+    def _for_display(data: Any) -> Any:
+        if fmt != OutputFormat.table:
+            return data
+        raw = _to_serializable(data)
+        if isinstance(raw, dict) and "results" in raw:
+            raw = dict(raw)
+            raw["results"] = [
+                {k: row.get(k) for k in _LIST_TABLE_COLUMNS}
+                for row in raw["results"]
+            ]
+        return raw
+
     if watch:
-        _watch_loop(_fetch, interval, until_status, fmt)
+        _watch_loop(lambda: _for_display(_fetch()), interval, until_status, fmt)
     else:
-        print_output(_fetch(), fmt)
+        print_output(_for_display(_fetch()), fmt)
 
 
 @app.command("get")
@@ -144,7 +174,7 @@ def get_workspace(
 
     def _fetch() -> Any:
         with get_client() as client:
-            return client.get(f"/workspaces/{workspace_id}/")
+            return ws_api.get_workspace(client, workspace_id)
 
     if watch:
         _watch_loop(_fetch, interval, until_status, fmt)
@@ -177,12 +207,8 @@ def create_workspace(
         raise typer.Exit(1) from exc
 
     with get_client() as client:
-        data = client.post(
-            "/workspaces/",
-            json=body,
-            content_type=f"application/json;{application_type}",
-        )
-    print_json(data)
+        result = ws_api.create_workspace(client, body, application_type)
+    print_json(result)
 
 
 @app.command("update")
@@ -196,19 +222,15 @@ def update_workspace(
     ),
 ) -> None:
     """Partially update a workspace (name and/or end_time)."""
-    body: dict[str, str] = {}
-    if name is not None:
-        body["name"] = name
-    if end_time is not None:
-        body["end_time"] = end_time
-
-    if not body:
+    if name is None and end_time is None:
         typer.echo("Provide at least --name or --end-time.", err=True)
         raise typer.Exit(1)
 
+    update = PatchedWorkspaceUpdate(name=name, end_time=end_time)
+
     with get_client() as client:
-        data = client.patch(f"/workspaces/{workspace_id}/", json=body)
-    print_json(data)
+        result = ws_api.update_workspace(client, workspace_id, update)
+    print_json(result)
 
 
 @app.command("delete")
@@ -220,7 +242,7 @@ def delete_workspace(
     if not confirm:
         typer.confirm(f"Delete workspace {workspace_id}?", abort=True)
     with get_client() as client:
-        client.delete(f"/workspaces/{workspace_id}/")
+        ws_api.delete_workspace(client, workspace_id)
     typer.echo(f"Workspace {workspace_id} deleted.")
 
 
@@ -251,21 +273,22 @@ def workspace_action(
         typer.echo(f"Invalid action_type '{action_type}'. Options: {valid}.", err=True)
         raise typer.Exit(1)
 
-    body: object = {}
+    request: Optional[Union[ActionRequestNsgsSchema, ActionRequestStorageSchema]] = None
     if params is not None:
         try:
-            body = json.loads(params)
+            params_body = json.loads(params)
         except json.JSONDecodeError as exc:
             typer.echo(f"Invalid JSON params: {exc}", err=True)
             raise typer.Exit(1) from exc
 
+        if action_type == "update_nsgs":
+            request = ActionRequestNsgsSchema.model_validate(params_body)
+        elif action_type == "update_storages":
+            request = ActionRequestStorageSchema.model_validate(params_body)
+
     with get_client() as client:
-        data = client.post(
-            f"/workspaces/{workspace_id}/actions/{action_type}/",
-            json=body,
-            content_type=f"application/json;{action_type}",
-        )
-    print_json(data)
+        result = ws_api.workspace_action(client, workspace_id, action_type, request)
+    print_json(result)
 
 
 _VALID_ACTIONS = {
@@ -306,9 +329,11 @@ def workspace_actions(
             typer.echo(f"Invalid action '{action_val}'. Options: {valid}.", err=True)
             raise typer.Exit(1)
 
+    actions = [WorkspaceActionsRequest.model_validate(item) for item in body]
+
     with get_client() as client:
-        data = client.post(f"/workspaces/{workspace_id}/actions/", json=body)
-    print_json(data)
+        result = ws_api.workspace_actions(client, workspace_id, actions)
+    print_json(result)
 
 
 @app.command("change-wallet")
@@ -318,13 +343,12 @@ def change_wallet(
     wallet_name: Optional[str] = typer.Option(None, "--wallet-name", help="New wallet name."),
 ) -> None:
     """Change the wallet associated with a workspace."""
-    body: dict[str, str] = {"wallet_id": wallet_id}
-    if wallet_name is not None:
-        body["wallet_name"] = wallet_name
-
+    request = PatchedWorkspaceChangeWalletRequest(
+        wallet_id=wallet_id, wallet_name=wallet_name
+    )
     with get_client() as client:
-        data = client.patch(f"/workspaces/{workspace_id}/change_wallet/", json=body)
-    print_json(data)
+        result = ws_api.change_wallet(client, workspace_id, request)
+    print_json(result)
 
 
 @app.command("claim-ownership")
@@ -333,8 +357,8 @@ def claim_ownership(
 ) -> None:
     """Claim ownership of a workspace (WS admin only)."""
     with get_client() as client:
-        data = client.patch(f"/workspaces/{workspace_id}/claim_ownership/", json={})
-    print_json(data)
+        result = ws_api.claim_ownership(client, workspace_id)
+    print_json(result)
 
 
 @app.command("logs")
@@ -343,47 +367,47 @@ def get_logs(
 ) -> None:
     """Retrieve the logs for a workspace."""
     with get_client() as client:
-        text = client.get_text(f"/workspaces/{workspace_id}/logs/")
+        text = ws_api.get_workspace_logs(client, workspace_id)
     typer.echo(text)
 
 
 def _ssh_config_entry(
-    workspace: dict[str, Any],
+    workspace: AnyWorkspace,
     user: Optional[str],
     identity_file: Optional[str],
     port: int,
 ) -> Optional[str]:
     """Return an SSH config block for *workspace*, or None if no hostname is available."""
-    resource_meta = workspace.get("resource_meta") or {}
-    meta = workspace.get("meta") or {}
+    resource_meta = workspace.resource_meta
+    meta = workspace.meta
 
-    hostname = (
-        resource_meta.get("ip")
-        or resource_meta.get("workspace_fqdn")
-        or meta.get("workspace_fqdn")
-    )
+    hostname = None
+    if resource_meta is not None:
+        hostname = (
+            getattr(resource_meta, "ip", None)
+            or getattr(resource_meta, "workspace_fqdn", None)
+        )
+    if not hostname and meta is not None:
+        hostname = getattr(meta, "workspace_fqdn", None)
+
     if not hostname:
         return None
 
-    ws_name = workspace.get("name") or workspace.get("id", "unknown")
-    # Sanitize for use as SSH Host alias (replace spaces/special chars with hyphens).
+    ws_name = workspace.name or workspace.id
     host_alias = "".join(c if c.isalnum() or c in "-_." else "-" for c in str(ws_name))
 
-    effective_user = (
-        user
-        or resource_meta.get("instance_user")
-        or meta.get("instance_user")
-    )
-    effective_port = port
+    effective_user = user
+    if not effective_user and resource_meta is not None:
+        effective_user = getattr(resource_meta, "instance_user", None)
 
     lines = [f"Host {host_alias}"]
     lines.append(f"    HostName {hostname}")
     if effective_user:
         lines.append(f"    User {effective_user}")
-    lines.append(f"    Port {effective_port}")
+    lines.append(f"    Port {port}")
     if identity_file:
         lines.append(f"    IdentityFile {identity_file}")
-    lines.append(f"    # Workspace ID: {workspace.get('id', '')}")
+    lines.append(f"    # Workspace ID: {workspace.id}")
     return "\n".join(lines)
 
 
@@ -418,7 +442,7 @@ def workspace_ssh_config(
 
     with get_client() as client:
         if workspace_id:
-            workspace = client.get(f"/workspaces/{workspace_id}/")
+            workspace = ws_api.get_workspace(client, workspace_id)
             entry = _ssh_config_entry(workspace, user, identity_file, port)
             if entry:
                 entries.append(entry)
@@ -428,12 +452,10 @@ def workspace_ssh_config(
                 )
                 raise typer.Exit(1)
         else:
-            params: dict[str, Any] = {}
-            if status_filter:
-                params["status"] = status_filter
-            response = client.get("/workspaces/", **params)
-            workspaces = response.get("results", [])
-            for ws in workspaces:
+            paginated = ws_api.list_workspaces(
+                client, status=status_filter if status_filter else None
+            )
+            for ws in paginated.results:
                 entry = _ssh_config_entry(ws, user, identity_file, port)
                 if entry:
                     entries.append(entry)
