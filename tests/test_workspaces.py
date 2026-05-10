@@ -538,3 +538,125 @@ class TestWatchWorkspaceList:
         result = runner.invoke(app, ["workspace", "list", "--watch"])
         assert result.exit_code == 1
         assert TOKEN_ENV_VAR in result.output
+
+
+SSH_WORKSPACE = {
+    **SAMPLE_WORKSPACE,
+    "name": "My SSH Workspace",
+    "resource_meta": {"ip_address": "10.0.0.1"},
+}
+
+SSH_WORKSPACE_WITH_USER = {
+    **SAMPLE_WORKSPACE,
+    "name": "My SSH Workspace",
+    "resource_meta": {"ip_address": "10.0.0.1", "username": "surf"},
+}
+
+
+class TestSshConfig:
+    def test_ssh_config_single_workspace(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/",
+            json=SSH_WORKSPACE,
+        )
+        result = runner.invoke(app, ["workspace", "ssh-config", WORKSPACE_ID])
+        assert result.exit_code == 0
+        assert "Host My-SSH-Workspace" in result.output
+        assert "HostName 10.0.0.1" in result.output
+        assert "Port 22" in result.output
+        assert f"Workspace ID: {WORKSPACE_ID}" in result.output
+
+    def test_ssh_config_single_workspace_with_user_option(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/",
+            json=SSH_WORKSPACE,
+        )
+        result = runner.invoke(app, ["workspace", "ssh-config", WORKSPACE_ID, "--user", "ubuntu"])
+        assert result.exit_code == 0
+        assert "User ubuntu" in result.output
+
+    def test_ssh_config_single_workspace_user_from_meta(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/",
+            json=SSH_WORKSPACE_WITH_USER,
+        )
+        result = runner.invoke(app, ["workspace", "ssh-config", WORKSPACE_ID])
+        assert result.exit_code == 0
+        assert "User surf" in result.output
+
+    def test_ssh_config_single_workspace_with_identity_file(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/",
+            json=SSH_WORKSPACE,
+        )
+        result = runner.invoke(
+            app, ["workspace", "ssh-config", WORKSPACE_ID, "--identity-file", "~/.ssh/id_rsa"]
+        )
+        assert result.exit_code == 0
+        assert "IdentityFile ~/.ssh/id_rsa" in result.output
+
+    def test_ssh_config_single_workspace_custom_port(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/",
+            json=SSH_WORKSPACE,
+        )
+        result = runner.invoke(app, ["workspace", "ssh-config", WORKSPACE_ID, "--port", "2222"])
+        assert result.exit_code == 0
+        assert "Port 2222" in result.output
+
+    def test_ssh_config_no_ip_address_exits_nonzero(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/",
+            json=SAMPLE_WORKSPACE,
+        )
+        result = runner.invoke(app, ["workspace", "ssh-config", WORKSPACE_ID])
+        assert result.exit_code == 1
+
+    def test_ssh_config_all_workspaces(self, httpx_mock: HTTPXMock) -> None:
+        response = {"count": 1, "next": None, "previous": None, "results": [SSH_WORKSPACE]}
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/?status=running",
+            json=response,
+        )
+        result = runner.invoke(app, ["workspace", "ssh-config"])
+        assert result.exit_code == 0
+        assert "Host My-SSH-Workspace" in result.output
+        assert "HostName 10.0.0.1" in result.output
+
+    def test_ssh_config_all_workspaces_no_status_filter(self, httpx_mock: HTTPXMock) -> None:
+        response = {"count": 1, "next": None, "previous": None, "results": [SSH_WORKSPACE]}
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/",
+            json=response,
+        )
+        result = runner.invoke(app, ["workspace", "ssh-config", "--status", ""])
+        assert result.exit_code == 0
+        assert "Host My-SSH-Workspace" in result.output
+
+    def test_ssh_config_all_workspaces_none_reachable(self, httpx_mock: HTTPXMock) -> None:
+        response = {**PAGINATED_RESPONSE, "results": [SAMPLE_WORKSPACE]}
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/?status=running",
+            json=response,
+        )
+        result = runner.invoke(app, ["workspace", "ssh-config"])
+        assert result.exit_code == 0
+        assert "No workspaces" in result.output
+
+    def test_ssh_config_multiple_workspaces(self, httpx_mock: HTTPXMock) -> None:
+        ws2 = {**SSH_WORKSPACE, "id": "ws-456", "name": "Second WS"}
+        response = {"count": 2, "next": None, "previous": None, "results": [SSH_WORKSPACE, ws2]}
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/?status=running",
+            json=response,
+        )
+        result = runner.invoke(app, ["workspace", "ssh-config"])
+        assert result.exit_code == 0
+        assert "My-SSH-Workspace" in result.output
+        assert "Second-WS" in result.output
+
+    def test_ssh_config_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+        result = runner.invoke(app, ["workspace", "ssh-config"])
+        assert result.exit_code == 1
+        assert TOKEN_ENV_VAR in result.output
