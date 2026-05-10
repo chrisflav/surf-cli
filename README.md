@@ -21,10 +21,29 @@ uv sync --extra dev
 
 ## Authentication
 
-surf-cli reads your API token from the `SURF_API_TOKEN` environment variable:
+surf-cli looks for an API token in the following order:
+
+1. **Environment variable** – `SURF_API_TOKEN`
+2. **Configuration file** – `~/.config/surf-cli/config.toml`
+
+### Using the environment variable
 
 ```bash
 export SURF_API_TOKEN="<your-token>"
+```
+
+### Using the configuration file
+
+Save the token once with the `config set-token` command:
+
+```bash
+surf config set-token "<your-token>"
+```
+
+The token is written to `~/.config/surf-cli/config.toml` with permissions `0600`. Verify the current configuration with:
+
+```bash
+surf config show
 ```
 
 ## Usage
