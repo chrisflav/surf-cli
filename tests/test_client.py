@@ -1,5 +1,7 @@
 """Tests for the SURF API client."""
 
+from unittest.mock import patch
+
 import pytest
 import httpx
 from pytest_httpx import HTTPXMock
@@ -116,7 +118,7 @@ def test_not_found_error(httpx_mock: HTTPXMock) -> None:
 
 def test_rate_limit_error(httpx_mock: HTTPXMock) -> None:
     httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=429, json={"detail": "Too many requests."})
-    with SurfClient(token="tok") as client:
+    with SurfClient(token="tok", max_retries=0) as client:
         with pytest.raises(RateLimitError) as exc_info:
             client.get("/items")
     assert exc_info.value.status_code == 429
@@ -124,7 +126,7 @@ def test_rate_limit_error(httpx_mock: HTTPXMock) -> None:
 
 def test_server_error(httpx_mock: HTTPXMock) -> None:
     httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=500, json={"detail": "Internal server error."})
-    with SurfClient(token="tok") as client:
+    with SurfClient(token="tok", max_retries=0) as client:
         with pytest.raises(ServerError) as exc_info:
             client.get("/items")
     assert exc_info.value.status_code == 500
@@ -144,3 +146,135 @@ def test_error_includes_response(httpx_mock: HTTPXMock) -> None:
         with pytest.raises(AuthenticationError) as exc_info:
             client.get("/items")
     assert exc_info.value.response is not None
+
+
+# ---------------------------------------------------------------------------
+# Retry / exponential-backoff tests
+# ---------------------------------------------------------------------------
+
+
+def _no_sleep(_: float) -> None:
+    """Replacement for time.sleep that does nothing."""
+
+
+def test_retry_on_server_error_succeeds(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=500, json={"detail": "err"})
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", json={"results": []})
+    with patch("surf_cli.client.time.sleep", _no_sleep):
+        with SurfClient(token="tok", max_retries=3, retry_delay=0) as client:
+            data = client.get("/items")
+    assert data == {"results": []}
+
+
+def test_retry_on_rate_limit_succeeds(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=429, json={"detail": "slow"})
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", json={"ok": True})
+    with patch("surf_cli.client.time.sleep", _no_sleep):
+        with SurfClient(token="tok", max_retries=3, retry_delay=0) as client:
+            data = client.get("/items")
+    assert data == {"ok": True}
+
+
+def test_retry_exhausted_raises_last_exception(httpx_mock: HTTPXMock) -> None:
+    for _ in range(4):  # 1 initial + 3 retries
+        httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=500, json={"detail": "err"})
+    with patch("surf_cli.client.time.sleep", _no_sleep):
+        with SurfClient(token="tok", max_retries=3, retry_delay=0) as client:
+            with pytest.raises(ServerError):
+                client.get("/items")
+
+
+def test_no_retry_on_auth_error(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=401, json={"detail": "bad"})
+    with patch("surf_cli.client.time.sleep", _no_sleep):
+        with SurfClient(token="tok", max_retries=3, retry_delay=0) as client:
+            with pytest.raises(AuthenticationError):
+                client.get("/items")
+    # Only one request was made
+    assert len(httpx_mock.get_requests()) == 1
+
+
+def test_no_retry_on_not_found(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items/1", status_code=404, json={"detail": "nf"})
+    with patch("surf_cli.client.time.sleep", _no_sleep):
+        with SurfClient(token="tok", max_retries=3, retry_delay=0) as client:
+            with pytest.raises(NotFoundError):
+                client.get("/items/1")
+    assert len(httpx_mock.get_requests()) == 1
+
+
+def test_retry_respects_retry_after_header(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(
+        url=f"{API_BASE_URL}/items",
+        status_code=429,
+        headers={"Retry-After": "5"},
+        json={"detail": "slow"},
+    )
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", json={"ok": True})
+    sleep_calls: list[float] = []
+    with patch("surf_cli.client.time.sleep", sleep_calls.append):
+        with SurfClient(token="tok", max_retries=3, retry_delay=1.0) as client:
+            client.get("/items")
+    assert sleep_calls == [5.0]
+
+
+def test_retry_exponential_backoff_delays(httpx_mock: HTTPXMock) -> None:
+    for _ in range(3):
+        httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=500, json={"detail": "err"})
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", json={"ok": True})
+    sleep_calls: list[float] = []
+    with patch("surf_cli.client.time.sleep", sleep_calls.append):
+        with SurfClient(token="tok", max_retries=3, retry_delay=1.0) as client:
+            client.get("/items")
+    assert sleep_calls == [1.0, 2.0, 4.0]
+
+
+def test_retry_on_transport_error(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_exception(httpx.ConnectError("connection refused"))
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", json={"ok": True})
+    with patch("surf_cli.client.time.sleep", _no_sleep):
+        with SurfClient(token="tok", max_retries=3, retry_delay=0) as client:
+            data = client.get("/items")
+    assert data == {"ok": True}
+
+
+def test_retry_transport_error_exhausted(httpx_mock: HTTPXMock) -> None:
+    for _ in range(4):
+        httpx_mock.add_exception(httpx.ConnectError("connection refused"))
+    with patch("surf_cli.client.time.sleep", _no_sleep):
+        with SurfClient(token="tok", max_retries=3, retry_delay=0) as client:
+            with pytest.raises(httpx.TransportError):
+                client.get("/items")
+
+
+def test_client_default_retry_params() -> None:
+    from surf_cli.client import DEFAULT_MAX_RETRIES, DEFAULT_RETRY_DELAY
+
+    client = SurfClient(token="tok")
+    assert client._max_retries == DEFAULT_MAX_RETRIES
+    assert client._retry_delay == DEFAULT_RETRY_DELAY
+    client.close()
+
+
+def test_client_custom_retry_params() -> None:
+    client = SurfClient(token="tok", max_retries=5, retry_delay=2.0)
+    assert client._max_retries == 5
+    assert client._retry_delay == 2.0
+    client.close()
+
+
+def test_retry_post_on_server_error(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=503, json={"detail": "unavail"})
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", json={"id": 1}, status_code=201)
+    with patch("surf_cli.client.time.sleep", _no_sleep):
+        with SurfClient(token="tok", max_retries=3, retry_delay=0) as client:
+            data = client.post("/items", json={"name": "foo"})
+    assert data == {"id": 1}
+
+
+def test_retry_delete_on_server_error(httpx_mock: HTTPXMock) -> None:
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items/1", status_code=500, json={"detail": "err"})
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items/1", status_code=204, content=b"")
+    with patch("surf_cli.client.time.sleep", _no_sleep):
+        with SurfClient(token="tok", max_retries=3, retry_delay=0) as client:
+            client.delete("/items/1")
