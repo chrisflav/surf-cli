@@ -98,6 +98,12 @@ def list_workspaces(
     ),
 ) -> None:
     """List workspaces accessible to the authenticated user."""
+    if limit is not None and limit <= 0:
+        typer.echo("--limit must be a positive integer.", err=True)
+        raise typer.Exit(1)
+    if offset is not None and offset < 0:
+        typer.echo("--offset must be a non-negative integer.", err=True)
+        raise typer.Exit(1)
 
     def _fetch() -> Any:
         with get_client() as client:

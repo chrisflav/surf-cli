@@ -95,6 +95,18 @@ class TestListCatalog:
         result = runner.invoke(app, ["catalog", "list", "--limit", "5", "--offset", "10"])
         assert result.exit_code == 0
 
+    def test_list_invalid_limit(self) -> None:
+        result = runner.invoke(app, ["catalog", "list", "--limit", "0"])
+        assert result.exit_code == 1
+
+    def test_list_negative_limit(self) -> None:
+        result = runner.invoke(app, ["catalog", "list", "--limit", "-1"])
+        assert result.exit_code == 1
+
+    def test_list_negative_offset(self) -> None:
+        result = runner.invoke(app, ["catalog", "list", "--offset", "-1"])
+        assert result.exit_code == 1
+
     def test_list_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
         result = runner.invoke(app, ["catalog", "list"])
