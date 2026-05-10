@@ -5,6 +5,7 @@ import typer
 from surf_cli import __version__
 from surf_cli.commands import catalog, co, storage, wallets, workspaces
 from surf_cli.config import CONFIG_FILE, read_token, write_token
+from surf_cli.state import state
 
 app = typer.Typer(
     name="surf",
@@ -62,8 +63,14 @@ def main(
         callback=version_callback,
         is_eager=True,
     ),
+    verbose: bool = typer.Option(  # noqa: FBT001
+        False,
+        "--verbose",
+        help="Show raw HTTP request and response details.",
+    ),
 ) -> None:
     """SURF Research Cloud command-line interface."""
+    state.verbose = verbose
 
 
 if __name__ == "__main__":

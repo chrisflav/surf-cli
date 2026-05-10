@@ -29,3 +29,9 @@ def test_help() -> None:
 def test_no_args_shows_help() -> None:
     result = runner.invoke(app, [])
     assert "surf" in result.output.lower()
+
+
+def test_verbose_flag_in_help() -> None:
+    result = runner.invoke(app, ["--help"])
+    assert result.exit_code == 0
+    assert "--verbose" in result.output

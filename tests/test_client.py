@@ -278,3 +278,52 @@ def test_retry_delete_on_server_error(httpx_mock: HTTPXMock) -> None:
     with patch("surf_cli.client.time.sleep", _no_sleep):
         with SurfClient(token="tok", max_retries=3, retry_delay=0) as client:
             client.delete("/items/1")
+
+
+# ---------------------------------------------------------------------------
+# Verbose logging tests
+# ---------------------------------------------------------------------------
+
+
+def test_verbose_get_logs_to_stderr(
+    httpx_mock: HTTPXMock, capsys: pytest.CaptureFixture[str]
+) -> None:
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", json={"results": []})
+    with SurfClient(token="tok", verbose=True) as client:
+        client.get("/items")
+    err = capsys.readouterr().err
+    assert "GET" in err
+    assert "200" in err
+    # Auth token should be masked
+    assert "tok" not in err
+    assert "***" in err
+
+
+def test_verbose_post_logs_to_stderr(
+    httpx_mock: HTTPXMock, capsys: pytest.CaptureFixture[str]
+) -> None:
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", json={"id": 1}, status_code=201)
+    with SurfClient(token="tok", verbose=True) as client:
+        client.post("/items", json={"name": "foo"})
+    err = capsys.readouterr().err
+    assert "POST" in err
+    assert "201" in err
+
+
+def test_verbose_delete_logs_to_stderr(
+    httpx_mock: HTTPXMock, capsys: pytest.CaptureFixture[str]
+) -> None:
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items/1", status_code=204, content=b"")
+    with SurfClient(token="tok", verbose=True) as client:
+        client.delete("/items/1")
+    err = capsys.readouterr().err
+    assert "DELETE" in err
+    assert "204" in err
+
+
+def test_non_verbose_no_stderr(httpx_mock: HTTPXMock, capsys: pytest.CaptureFixture[str]) -> None:
+    httpx_mock.add_response(url=f"{API_BASE_URL}/items", json={"results": []})
+    with SurfClient(token="tok", verbose=False) as client:
+        client.get("/items")
+    err = capsys.readouterr().err
+    assert err == ""
