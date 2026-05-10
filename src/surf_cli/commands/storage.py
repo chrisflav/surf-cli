@@ -44,7 +44,7 @@ def list_storage(
         None, "--wallet-id", "-w", help="Filter by wallet ID."
     ),
     fmt: OutputFormat = typer.Option(
-        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
 ) -> None:
     """List storage volumes accessible to the authenticated user."""
@@ -65,7 +65,7 @@ def list_storage(
 def get_storage(
     storage_id: str = typer.Argument(..., help="Storage volume ID."),
     fmt: OutputFormat = typer.Option(
-        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
 ) -> None:
     """Retrieve a storage volume by ID."""

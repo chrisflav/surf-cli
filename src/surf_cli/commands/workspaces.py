@@ -87,7 +87,7 @@ def list_workspaces(
     ),
     wallet_id: Optional[str] = typer.Option(None, "--wallet-id", "-w", help="Filter by wallet ID."),
     fmt: OutputFormat = typer.Option(
-        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
     watch: bool = typer.Option(False, "--watch", help="Poll for updates at a regular interval."),
     interval: int = typer.Option(5, "--interval", help="Polling interval in seconds (used with --watch)."),
@@ -124,7 +124,7 @@ def list_workspaces(
 def get_workspace(
     workspace_id: str = typer.Argument(..., help="Workspace ID."),
     fmt: OutputFormat = typer.Option(
-        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
     watch: bool = typer.Option(False, "--watch", "-W", help="Poll for updates at a regular interval."),
     interval: int = typer.Option(5, "--interval", help="Polling interval in seconds (used with --watch)."),

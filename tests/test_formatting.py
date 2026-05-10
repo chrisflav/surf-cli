@@ -6,7 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from surf_cli.client import TOKEN_ENV_VAR
-from surf_cli.formatting import OutputFormat, print_json, print_output, print_table
+from surf_cli.formatting import OutputFormat, print_csv, print_json, print_output, print_table
 
 runner = CliRunner()
 
@@ -85,6 +85,63 @@ class TestPrintTable:
         assert "42" in captured.out
 
 
+class TestPrintCsv:
+    def test_list_of_dicts(self, capsys: pytest.CaptureFixture) -> None:
+        rows = [{"id": "1", "name": "foo"}, {"id": "2", "name": "bar"}]
+        print_csv(rows)
+        captured = capsys.readouterr()
+        lines = captured.out.splitlines()
+        assert lines[0] == "id,name"
+        assert lines[1] == "1,foo"
+        assert lines[2] == "2,bar"
+
+    def test_paginated_response(self, capsys: pytest.CaptureFixture) -> None:
+        data = {
+            "count": 1,
+            "next": None,
+            "previous": None,
+            "results": [{"id": "ws-1", "name": "my workspace", "status": "running"}],
+        }
+        print_csv(data)
+        captured = capsys.readouterr()
+        lines = captured.out.splitlines()
+        assert lines[0] == "id,name,status"
+        assert "ws-1" in lines[1]
+        assert "my workspace" in lines[1]
+        assert "running" in lines[1]
+
+    def test_single_dict(self, capsys: pytest.CaptureFixture) -> None:
+        data = {"id": "ws-1", "name": "my workspace"}
+        print_csv(data)
+        captured = capsys.readouterr()
+        lines = captured.out.splitlines()
+        assert lines[0] == "field,value"
+        assert lines[1] == "id,ws-1"
+        assert "my workspace" in lines[2]
+
+    def test_empty_list(self, capsys: pytest.CaptureFixture) -> None:
+        print_csv([])
+        # Empty list → no output; should not raise.
+
+    def test_fallback_to_json_for_scalar(self, capsys: pytest.CaptureFixture) -> None:
+        print_csv(42)
+        captured = capsys.readouterr()
+        assert "42" in captured.out
+
+    def test_values_with_commas_are_quoted(self, capsys: pytest.CaptureFixture) -> None:
+        print_csv([{"id": "1", "name": "foo, bar"}])
+        captured = capsys.readouterr()
+        lines = captured.out.splitlines()
+        assert '"foo, bar"' in lines[1]
+
+    def test_none_values_become_empty_string(self, capsys: pytest.CaptureFixture) -> None:
+        print_csv([{"id": "1", "end_time": None}])
+        captured = capsys.readouterr()
+        lines = captured.out.splitlines()
+        assert lines[0] == "id,end_time"
+        assert lines[1] == "1,"
+
+
 class TestPrintOutput:
     def test_json_format(self, capsys: pytest.CaptureFixture) -> None:
         print_output({"key": "val"}, OutputFormat.json)
@@ -101,6 +158,21 @@ class TestPrintOutput:
         print_output(data, OutputFormat.table)
         captured = capsys.readouterr()
         assert "1" in captured.out
+
+    def test_csv_format_list(self, capsys: pytest.CaptureFixture) -> None:
+        print_output([{"id": "1", "name": "foo"}], OutputFormat.csv)
+        captured = capsys.readouterr()
+        lines = captured.out.splitlines()
+        assert lines[0] == "id,name"
+        assert lines[1] == "1,foo"
+
+    def test_csv_format_paginated(self, capsys: pytest.CaptureFixture) -> None:
+        data = {"count": 1, "next": None, "previous": None, "results": [{"id": "1", "name": "foo"}]}
+        print_output(data, OutputFormat.csv)
+        captured = capsys.readouterr()
+        lines = captured.out.splitlines()
+        assert lines[0] == "id,name"
+        assert lines[1] == "1,foo"
 
 
 class TestOutputFormatOption:
@@ -144,6 +216,25 @@ class TestOutputFormatOption:
         result = runner.invoke(app, ["workspace", "get", "ws-1", "--format", "table"])
         assert result.exit_code == 0
         assert "test-ws" in result.output
+
+    def test_workspace_list_format_csv(self, httpx_mock) -> None:
+        from surf_cli.main import app
+
+        httpx_mock.add_response(
+            url="https://gw.live.surfresearchcloud.nl/v1/workspace/workspaces/",
+            json={
+                "count": 1,
+                "next": None,
+                "previous": None,
+                "results": [{"id": "ws-1", "name": "test-ws", "status": "running"}],
+            },
+        )
+        result = runner.invoke(app, ["workspace", "list", "--format", "csv"])
+        assert result.exit_code == 0
+        lines = result.output.splitlines()
+        assert lines[0] == "id,name,status"
+        assert "ws-1" in lines[1]
+        assert "test-ws" in lines[1]
 
     def test_invalid_format_rejected(self, httpx_mock) -> None:
         from surf_cli.main import app

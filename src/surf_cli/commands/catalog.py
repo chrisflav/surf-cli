@@ -37,7 +37,7 @@ def list_catalog(
         help="Filter by application type. Options: Compute, Storage, IP, Network.",
     ),
     fmt: OutputFormat = typer.Option(
-        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
 ) -> None:
     """List catalog items available to the authenticated user."""
@@ -57,7 +57,7 @@ def list_catalog(
 def get_catalog_item(
     item_id: str = typer.Argument(..., help="Catalog item ID."),
     fmt: OutputFormat = typer.Option(
-        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
 ) -> None:
     """Retrieve a catalog item by ID."""

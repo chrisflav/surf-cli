@@ -32,7 +32,7 @@ def list_wallets(
         None, "--offset", help="Offset for pagination."
     ),
     fmt: OutputFormat = typer.Option(
-        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
 ) -> None:
     """List wallets accessible to the authenticated user."""
@@ -45,7 +45,7 @@ def list_wallets(
 def get_wallet(
     wallet_id: str = typer.Argument(..., help="Wallet ID."),
     fmt: OutputFormat = typer.Option(
-        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
 ) -> None:
     """Retrieve a wallet by ID."""

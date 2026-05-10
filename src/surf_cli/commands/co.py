@@ -28,7 +28,7 @@ def list_cos(
         None, "--offset", help="Offset for pagination."
     ),
     fmt: OutputFormat = typer.Option(
-        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
 ) -> None:
     """List collaborative organisations accessible to the authenticated user."""
@@ -41,7 +41,7 @@ def list_cos(
 def get_co(
     co_id: str = typer.Argument(..., help="Collaborative organisation ID."),
     fmt: OutputFormat = typer.Option(
-        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
 ) -> None:
     """Retrieve a collaborative organisation by ID."""
@@ -126,7 +126,7 @@ def list_members(
         None, "--offset", help="Offset for pagination."
     ),
     fmt: OutputFormat = typer.Option(
-        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
+        OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
 ) -> None:
     """List members of a collaborative organisation."""
