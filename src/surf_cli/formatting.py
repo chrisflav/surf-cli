@@ -17,6 +17,7 @@ from rich.console import Console
 from rich.table import Table
 
 from surf_cli.client import SurfClient
+from surf_cli.state import state
 
 console = Console()
 err_console = Console(stderr=True)
@@ -33,7 +34,7 @@ class OutputFormat(str, Enum):
 def get_client() -> SurfClient:
     """Create a SurfClient, exiting with an error if the token is missing."""
     try:
-        return SurfClient()
+        return SurfClient(verbose=state.verbose)
     except ValueError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
