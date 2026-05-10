@@ -96,6 +96,50 @@ class TestConfigCommands:
         assert "show" in result.output
 
 
+class TestConfigValidateCommand:
+    def test_validate_success(self, tmp_config: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        from unittest.mock import MagicMock, patch
+
+        write_token("valid-token")
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.get.return_value = {"results": []}
+
+        with patch("surf_cli.main.get_client", return_value=mock_client):
+            result = runner.invoke(app, ["config", "validate"])
+
+        assert result.exit_code == 0
+        assert "valid" in result.output.lower()
+        mock_client.get.assert_called_once_with("/workspaces/", limit=1)
+
+    def test_validate_invalid_token(self, tmp_config: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        from unittest.mock import MagicMock, patch
+
+        from surf_cli.exceptions import AuthenticationError
+
+        write_token("bad-token")
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.get.side_effect = AuthenticationError("HTTP 401: Unauthorized", status_code=401)
+
+        with patch("surf_cli.main.get_client", return_value=mock_client):
+            result = runner.invoke(app, ["config", "validate"])
+
+        assert result.exit_code == 1
+
+    def test_validate_no_token(self, tmp_config: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("SURF_API_TOKEN", raising=False)
+        result = runner.invoke(app, ["config", "validate"])
+        assert result.exit_code == 1
+
+    def test_validate_appears_in_config_help(self) -> None:
+        result = runner.invoke(app, ["config", "--help"])
+        assert result.exit_code == 0
+        assert "validate" in result.output
+
+
 class TestClientFallsBackToConfigFile:
     def test_uses_config_file_token_when_env_unset(
         self, tmp_config: Path, monkeypatch: pytest.MonkeyPatch
