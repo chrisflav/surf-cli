@@ -1,5 +1,8 @@
 # surf-cli
 
+> **Note:** This package is a prototype written by [Claude](https://claude.ai). Review the code
+> before using it in production.
+
 A command-line interface for [SURF Research Cloud](https://surfresearchcloud.nl), built on the
 [SURF Research Cloud API](https://gw.live.surfresearchcloud.nl/v1/workspace/swagger/docs/).
 
@@ -663,19 +666,9 @@ tests/
 
 ## CI
 
-The CI workflow template lives at `.github-template/workflows/ci.yml`. It runs lint
-(`ruff`) and tests across Python 3.11, 3.12, and 3.13 on every push and pull request
-to `main`.
-
-To apply the workflow (requires `workflows` git permission):
-
-```bash
-./setup-ci.sh
-git add .github/workflows/ci.yml
-git commit -m "Add GitHub Actions CI workflow"
-git push
-```
+The CI workflow lives at `.github/workflows/ci.yml`. It runs lint (`ruff`) and tests
+across Python 3.11, 3.12, and 3.13 on every push and pull request to `main`.
 
 ## License
 
-MIT
+Apache 2.0 — see [LICENSE](LICENSE).
