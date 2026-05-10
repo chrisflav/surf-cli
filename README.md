@@ -661,6 +661,21 @@ tests/
 └── test_wallets.py
 ```
 
+## CI
+
+The CI workflow template lives at `.github-template/workflows/ci.yml`. It runs lint
+(`ruff`) and tests across Python 3.11, 3.12, and 3.13 on every push and pull request
+to `main`.
+
+To apply the workflow (requires `workflows` git permission):
+
+```bash
+./setup-ci.sh
+git add .github/workflows/ci.yml
+git commit -m "Add GitHub Actions CI workflow"
+git push
+```
+
 ## License
 
 MIT
