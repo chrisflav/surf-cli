@@ -40,7 +40,25 @@ Run `surf --help` to see all available commands.
 | Flag | Description |
 |------|-------------|
 | `-V`, `--version` | Print the version and exit. |
+| `--install-completion` | Install shell completion for the current shell and exit. |
+| `--show-completion` | Show the shell completion script for the current shell and exit. |
 | `--help` | Show help and exit. |
+
+### Shell completion
+
+surf-cli supports tab completion for bash, zsh, and fish. To install completion for your current shell:
+
+```bash
+surf --install-completion
+```
+
+To print the completion script without installing it (useful for custom setups):
+
+```bash
+surf --show-completion
+```
+
+After installing, restart your shell or source the updated RC file to activate completions.
 
 ### Output formats
 
