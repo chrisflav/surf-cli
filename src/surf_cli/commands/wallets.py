@@ -36,6 +36,12 @@ def list_wallets(
     ),
 ) -> None:
     """List wallets accessible to the authenticated user."""
+    if limit is not None and limit <= 0:
+        typer.echo("--limit must be a positive integer.", err=True)
+        raise typer.Exit(1)
+    if offset is not None and offset < 0:
+        typer.echo("--offset must be a non-negative integer.", err=True)
+        raise typer.Exit(1)
     with get_client() as client:
         data = client.get("/wallets/", co_id=co_id, limit=limit, name=name, offset=offset)
     print_output(data, fmt)

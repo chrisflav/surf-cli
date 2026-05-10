@@ -98,6 +98,18 @@ class TestListWorkspaces:
         result = runner.invoke(app, ["workspace", "list", "--limit", "10", "--offset", "0"])
         assert result.exit_code == 0
 
+    def test_list_invalid_limit(self) -> None:
+        result = runner.invoke(app, ["workspace", "list", "--limit", "0"])
+        assert result.exit_code == 1
+
+    def test_list_negative_limit(self) -> None:
+        result = runner.invoke(app, ["workspace", "list", "--limit", "-5"])
+        assert result.exit_code == 1
+
+    def test_list_negative_offset(self) -> None:
+        result = runner.invoke(app, ["workspace", "list", "--offset", "-1"])
+        assert result.exit_code == 1
+
     def test_list_by_owner(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(
             url=f"{BASE_URL}/workspaces/?by_owner=true",

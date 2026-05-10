@@ -32,6 +32,12 @@ def list_cos(
     ),
 ) -> None:
     """List collaborative organisations accessible to the authenticated user."""
+    if limit is not None and limit <= 0:
+        typer.echo("--limit must be a positive integer.", err=True)
+        raise typer.Exit(1)
+    if offset is not None and offset < 0:
+        typer.echo("--offset must be a non-negative integer.", err=True)
+        raise typer.Exit(1)
     with get_client() as client:
         data = client.get("/co/", limit=limit, name=name, offset=offset)
     print_output(data, fmt)
@@ -130,6 +136,12 @@ def list_members(
     ),
 ) -> None:
     """List members of a collaborative organisation."""
+    if limit is not None and limit <= 0:
+        typer.echo("--limit must be a positive integer.", err=True)
+        raise typer.Exit(1)
+    if offset is not None and offset < 0:
+        typer.echo("--offset must be a non-negative integer.", err=True)
+        raise typer.Exit(1)
     with get_client() as client:
         data = client.get(f"/co/{co_id}/members/", limit=limit, offset=offset)
     print_output(data, fmt)
