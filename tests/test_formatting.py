@@ -7,8 +7,8 @@ from typer.testing import CliRunner
 
 from surf_cli.client import TOKEN_ENV_VAR
 from surf_cli.formatting import (
-    OutputFormat,
     _TABLE_MAX_CELL_WIDTH,
+    OutputFormat,
     _cell,
     print_csv,
     print_json,

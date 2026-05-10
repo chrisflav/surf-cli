@@ -17,10 +17,10 @@ import typer
 import surf_cli.api.workspaces as ws_api
 from surf_cli.formatting import (
     OutputFormat,
+    _to_serializable,
     get_client,
     print_json,
     print_output,
-    _to_serializable,
 )
 from surf_cli.models import (
     ActionRequestNsgsSchema,

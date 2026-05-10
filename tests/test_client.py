@@ -2,11 +2,11 @@
 
 from unittest.mock import patch
 
-import pytest
 import httpx
+import pytest
 from pytest_httpx import HTTPXMock
 
-from surf_cli.client import SurfClient, TOKEN_ENV_VAR, API_BASE_URL
+from surf_cli.client import API_BASE_URL, TOKEN_ENV_VAR, SurfClient
 from surf_cli.exceptions import (
     AuthenticationError,
     NotFoundError,

@@ -98,7 +98,7 @@ class TestConfigCommands:
 
 class TestConfigValidateCommand:
     def test_validate_success(self, tmp_config: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import MagicMock
 
         write_token("valid-token")
         mock_client = MagicMock()
@@ -116,7 +116,7 @@ class TestConfigValidateCommand:
     def test_validate_invalid_token(
         self, tmp_config: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import MagicMock
 
         from surf_cli.exceptions import AuthenticationError
 

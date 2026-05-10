@@ -3,7 +3,6 @@
 import json
 from unittest.mock import patch
 
-import httpx
 from pytest_httpx import HTTPXMock
 from typer.testing import CliRunner
 
