@@ -139,11 +139,13 @@ class TestListWorkspaces:
         assert result.exit_code == 0
 
     def test_list_server_error(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/workspaces/",
-            status_code=500,
-            json={"detail": "Internal server error."},
-        )
+        # Register enough responses for the default retry count (3) plus the initial attempt.
+        for _ in range(4):
+            httpx_mock.add_response(
+                url=f"{BASE_URL}/workspaces/",
+                status_code=500,
+                json={"detail": "Internal server error."},
+            )
         result = runner.invoke(app, ["workspace", "list"])
         assert result.exit_code != 0
 
