@@ -295,7 +295,7 @@ surf storage list [OPTIONS]
 | `-l`, `--limit INTEGER` | Maximum number of results to return. |
 | `-n`, `--name TEXT` | Search by storage volume name. |
 | `--offset INTEGER` | Pagination offset. |
-| `-s`, `--status TEXT` | Filter by status (e.g. `available`, `in-use`, `creating`). |
+| `-s`, `--status TEXT` | Filter by status: `creating`, `available`, `in-use`, `full`, `updating`, `deleting`, `deleted`, `failed`, or `unknown`. |
 | `-w`, `--wallet-id TEXT` | Filter by wallet ID. |
 | `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
@@ -339,6 +339,12 @@ At least one option is required.
 | `-n`, `--name TEXT` | New storage volume name. |
 | `--end-time TEXT` | New end time in ISO 8601 format (e.g. `2024-12-31T23:59:59Z`). |
 
+**Examples:**
+```bash
+surf storage update st-456 --name "renamed-storage"
+surf storage update st-456 --end-time "2025-12-31T23:59:59Z"
+```
+
 ### storage delete
 
 Delete a storage volume.
@@ -350,6 +356,11 @@ surf storage delete STORAGE_ID [--yes]
 | Option | Description |
 |--------|-------------|
 | `-y`, `--yes` | Skip the confirmation prompt. |
+
+**Example:**
+```bash
+surf storage delete st-456 --yes
+```
 
 ---
 
@@ -416,6 +427,12 @@ At least one option is required.
 | `-n`, `--name TEXT` | New name. |
 | `-d`, `--description TEXT` | New description. |
 
+**Examples:**
+```bash
+surf co update co-1 --name "Renamed CO"
+surf co update co-1 --description "Updated description"
+```
+
 ### co delete
 
 Delete a collaborative organisation.
@@ -427,6 +444,11 @@ surf co delete CO_ID [--yes]
 | Option | Description |
 |--------|-------------|
 | `-y`, `--yes` | Skip the confirmation prompt. |
+
+**Example:**
+```bash
+surf co delete co-1 --yes
+```
 
 ### co members
 
@@ -442,6 +464,11 @@ surf co members CO_ID [OPTIONS]
 | `--offset INTEGER` | Pagination offset. |
 | `-f`, `--format TEXT` | Output format: `json` (default) or `table`. |
 
+**Example:**
+```bash
+surf co members co-1 --format table
+```
+
 ### co add-member
 
 Add a user to a collaborative organisation.
@@ -455,6 +482,12 @@ surf co add-member CO_ID --user-id USER_ID [OPTIONS]
 | `-u`, `--user-id TEXT` | (Required) User ID to add. |
 | `-r`, `--role TEXT` | Role to assign: `member` (default) or `admin`. |
 
+**Examples:**
+```bash
+surf co add-member co-1 --user-id user-42
+surf co add-member co-1 --user-id user-42 --role admin
+```
+
 ### co remove-member
 
 Remove a user from a collaborative organisation.
@@ -466,6 +499,11 @@ surf co remove-member CO_ID USER_ID [--yes]
 | Option | Description |
 |--------|-------------|
 | `-y`, `--yes` | Skip the confirmation prompt. |
+
+**Example:**
+```bash
+surf co remove-member co-1 user-42 --yes
+```
 
 ---
 
