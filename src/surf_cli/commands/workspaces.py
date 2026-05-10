@@ -7,13 +7,54 @@ Exposes CRUD and action operations on SURF Research Cloud workspaces via the
 from __future__ import annotations
 
 import json
-from typing import Optional
+import time
+from collections.abc import Callable
+from datetime import datetime, timezone
+from typing import Any, Optional
 
 import typer
 
 from surf_cli.formatting import OutputFormat, get_client, print_json, print_output
 
 app = typer.Typer(help="Manage SURF Research Cloud workspaces.")
+
+
+def _watch_loop(
+    fetch: Callable[[], Any],
+    interval: int,
+    until_status: Optional[str],
+    fmt: OutputFormat,
+) -> None:
+    """Poll *fetch* every *interval* seconds, printing results each iteration.
+
+    Stops when the user interrupts (Ctrl-C) or when the response status field
+    matches *until_status* (if provided).
+    """
+    try:
+        while True:
+            timestamp = datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            typer.echo(f"--- {timestamp} ---", err=True)
+            data = fetch()
+            print_output(data, fmt)
+
+            if until_status:
+                reached = False
+                if isinstance(data, dict):
+                    results = data.get("results")
+                    if isinstance(results, list):
+                        # Paginated response: stop if any item matches the target status.
+                        reached = any(
+                            isinstance(item, dict) and item.get("status") == until_status
+                            for item in results
+                        )
+                    else:
+                        reached = data.get("status") == until_status
+                if reached:
+                    break
+
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        pass
 
 
 @app.command("list")
@@ -48,22 +89,35 @@ def list_workspaces(
     fmt: OutputFormat = typer.Option(
         OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
     ),
+    watch: bool = typer.Option(False, "--watch", help="Poll for updates at a regular interval."),
+    interval: int = typer.Option(5, "--interval", help="Polling interval in seconds (used with --watch)."),
+    until_status: Optional[str] = typer.Option(
+        None,
+        "--until-status",
+        help="Stop polling when any workspace matches this status (used with --watch).",
+    ),
 ) -> None:
     """List workspaces accessible to the authenticated user."""
-    with get_client() as client:
-        data = client.get(
-            "/workspaces/",
-            application_type=application_type,
-            by_owner=by_owner,
-            co_id=co_id,
-            deleted=deleted,
-            limit=limit,
-            name=name,
-            offset=offset,
-            status=status,
-            wallet_id=wallet_id,
-        )
-    print_output(data, fmt)
+
+    def _fetch() -> Any:
+        with get_client() as client:
+            return client.get(
+                "/workspaces/",
+                application_type=application_type,
+                by_owner=by_owner,
+                co_id=co_id,
+                deleted=deleted,
+                limit=limit,
+                name=name,
+                offset=offset,
+                status=status,
+                wallet_id=wallet_id,
+            )
+
+    if watch:
+        _watch_loop(_fetch, interval, until_status, fmt)
+    else:
+        print_output(_fetch(), fmt)
 
 
 @app.command("get")
@@ -72,11 +126,24 @@ def get_workspace(
     fmt: OutputFormat = typer.Option(
         OutputFormat.json, "--format", "-f", help="Output format. Options: json, table."
     ),
+    watch: bool = typer.Option(False, "--watch", "-W", help="Poll for updates at a regular interval."),
+    interval: int = typer.Option(5, "--interval", help="Polling interval in seconds (used with --watch)."),
+    until_status: Optional[str] = typer.Option(
+        None,
+        "--until-status",
+        help="Stop polling when the workspace reaches this status (used with --watch).",
+    ),
 ) -> None:
     """Retrieve a workspace by ID."""
-    with get_client() as client:
-        data = client.get(f"/workspaces/{workspace_id}/")
-    print_output(data, fmt)
+
+    def _fetch() -> Any:
+        with get_client() as client:
+            return client.get(f"/workspaces/{workspace_id}/")
+
+    if watch:
+        _watch_loop(_fetch, interval, until_status, fmt)
+    else:
+        print_output(_fetch(), fmt)
 
 
 @app.command("create")

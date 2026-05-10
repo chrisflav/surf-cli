@@ -1,6 +1,7 @@
 """Tests for workspace CLI commands."""
 
 import json
+from unittest.mock import patch
 
 import httpx
 import pytest
@@ -11,6 +12,11 @@ from surf_cli.client import TOKEN_ENV_VAR
 from surf_cli.main import app
 
 runner = CliRunner()
+
+
+def _strip_separators(output: str) -> str:
+    """Remove watch-mode separator lines (--- ... ---) from captured output."""
+    return "\n".join(line for line in output.splitlines() if not line.startswith("---"))
 
 WORKSPACE_ID = "ws-123"
 BASE_URL = "https://gw.live.surfresearchcloud.nl/v1/workspace"
@@ -430,3 +436,103 @@ class TestGetLogs:
         )
         result = runner.invoke(app, ["workspace", "logs", WORKSPACE_ID])
         assert result.exit_code != 0
+
+
+class TestWatchWorkspaceGet:
+    def test_watch_exits_when_until_status_reached(self, httpx_mock: HTTPXMock) -> None:
+        running_ws = {**SAMPLE_WORKSPACE, "status": "running"}
+        httpx_mock.add_response(url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/", json=running_ws)
+        with patch("surf_cli.commands.workspaces.time.sleep") as mock_sleep:
+            result = runner.invoke(
+                app,
+                ["workspace", "get", WORKSPACE_ID, "--watch", "--until-status", "running", "--interval", "1"],
+            )
+        assert result.exit_code == 0
+        mock_sleep.assert_not_called()
+        data = json.loads(_strip_separators(result.output))
+        assert data["status"] == "running"
+
+    def test_watch_polls_until_status_changes(self, httpx_mock: HTTPXMock) -> None:
+        creating_ws = {**SAMPLE_WORKSPACE, "status": "creating"}
+        running_ws = {**SAMPLE_WORKSPACE, "status": "running"}
+        httpx_mock.add_response(url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/", json=creating_ws)
+        httpx_mock.add_response(url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/", json=running_ws)
+        with patch("surf_cli.commands.workspaces.time.sleep"):
+            result = runner.invoke(
+                app,
+                ["workspace", "get", WORKSPACE_ID, "--watch", "--until-status", "running", "--interval", "1"],
+            )
+        assert result.exit_code == 0
+        # Output contains two pretty-printed JSON objects; parse them with a streaming decoder.
+        decoder = json.JSONDecoder()
+        raw = _strip_separators(result.output).strip()
+        statuses = []
+        idx = 0
+        while idx < len(raw):
+            try:
+                obj, end = decoder.raw_decode(raw, idx)
+                statuses.append(obj["status"])
+                idx += end - idx
+            except json.JSONDecodeError:
+                idx += 1
+        assert statuses == ["creating", "running"]
+
+    def test_watch_keyboard_interrupt(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/", json=SAMPLE_WORKSPACE)
+
+        def _raise_interrupt(seconds: int) -> None:
+            raise KeyboardInterrupt
+
+        with patch("surf_cli.commands.workspaces.time.sleep", side_effect=_raise_interrupt):
+            result = runner.invoke(
+                app,
+                ["workspace", "get", WORKSPACE_ID, "--watch", "--interval", "1"],
+            )
+        assert result.exit_code == 0
+
+    def test_watch_short_flag(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/", json=SAMPLE_WORKSPACE)
+        with patch("surf_cli.commands.workspaces.time.sleep", side_effect=KeyboardInterrupt):
+            result = runner.invoke(
+                app,
+                ["workspace", "get", WORKSPACE_ID, "-W", "--interval", "1"],
+            )
+        assert result.exit_code == 0
+
+    def test_watch_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+        result = runner.invoke(app, ["workspace", "get", WORKSPACE_ID, "--watch"])
+        assert result.exit_code == 1
+        assert TOKEN_ENV_VAR in result.output
+
+
+class TestWatchWorkspaceList:
+    def test_watch_list_exits_when_until_status_reached(self, httpx_mock: HTTPXMock) -> None:
+        response = {**PAGINATED_RESPONSE, "results": [{**SAMPLE_WORKSPACE, "status": "paused"}]}
+        httpx_mock.add_response(url=f"{BASE_URL}/workspaces/", json=response)
+        with patch("surf_cli.commands.workspaces.time.sleep") as mock_sleep:
+            result = runner.invoke(
+                app,
+                ["workspace", "list", "--watch", "--until-status", "paused", "--interval", "1"],
+            )
+        assert result.exit_code == 0
+        mock_sleep.assert_not_called()
+
+    def test_watch_list_keyboard_interrupt(self, httpx_mock: HTTPXMock) -> None:
+        httpx_mock.add_response(url=f"{BASE_URL}/workspaces/", json=PAGINATED_RESPONSE)
+
+        def _raise_interrupt(seconds: int) -> None:
+            raise KeyboardInterrupt
+
+        with patch("surf_cli.commands.workspaces.time.sleep", side_effect=_raise_interrupt):
+            result = runner.invoke(
+                app,
+                ["workspace", "list", "--watch", "--interval", "1"],
+            )
+        assert result.exit_code == 0
+
+    def test_watch_list_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+        result = runner.invoke(app, ["workspace", "list", "--watch"])
+        assert result.exit_code == 1
+        assert TOKEN_ENV_VAR in result.output
