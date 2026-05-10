@@ -5,6 +5,7 @@ from typing import Any
 
 import httpx
 
+from surf_cli.config import read_token
 from surf_cli.exceptions import raise_for_status
 
 API_BASE_URL = "https://gw.live.surfresearchcloud.nl/v1/workspace"
@@ -15,10 +16,11 @@ class SurfClient:
     """Thin wrapper around the SURF Research Cloud REST API."""
 
     def __init__(self, token: str | None = None, base_url: str = API_BASE_URL) -> None:
-        self._token = token or os.environ.get(TOKEN_ENV_VAR)
+        self._token = token or os.environ.get(TOKEN_ENV_VAR) or read_token()
         if not self._token:
             raise ValueError(
-                f"API token not provided. Set the {TOKEN_ENV_VAR} environment variable."
+                f"API token not provided. Set the {TOKEN_ENV_VAR} environment variable"
+                " or run 'surf config set-token <token>'."
             )
         self._http = httpx.Client(
             base_url=base_url,
