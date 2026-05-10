@@ -1,12 +1,14 @@
 """Output formatting utilities for the surf CLI.
 
 Provides functions and types for rendering API responses in multiple formats
-(JSON, table) using the rich library.
+(JSON, table, CSV) using the rich library.
 """
 
 from __future__ import annotations
 
+import csv
 import json
+import sys
 from enum import Enum
 from typing import Any
 
@@ -25,6 +27,7 @@ class OutputFormat(str, Enum):
 
     json = "json"
     table = "table"
+    csv = "csv"
 
 
 def get_client() -> SurfClient:
@@ -97,9 +100,53 @@ def print_table(data: Any) -> None:
     print_json(data)
 
 
+def _csv_rows(data: Any) -> tuple[list[str], list[list[str]]]:
+    """Extract (headers, rows) from *data* for CSV output."""
+    if isinstance(data, list) and all(isinstance(item, dict) for item in data):
+        if not data:
+            return [], []
+        headers = list(data[0].keys())
+        rows = [[_cell(item.get(h)) for h in headers] for item in data]
+        return headers, rows
+
+    if isinstance(data, dict):
+        results = data.get("results")
+        if isinstance(results, list) and all(isinstance(item, dict) for item in results):
+            if not results:
+                return [], []
+            headers = list(results[0].keys())
+            rows = [[_cell(item.get(h)) for h in headers] for item in results]
+            return headers, rows
+
+        # Single object → key/value pairs.
+        headers = ["field", "value"]
+        rows = [[str(key), _cell(value)] for key, value in data.items()]
+        return headers, rows
+
+    return [], []
+
+
+def print_csv(data: Any) -> None:
+    """Print *data* as CSV.
+
+    Supports the same inputs as :func:`print_table`; falls back to JSON for
+    scalar or unrecognised values.
+    """
+    headers, rows = _csv_rows(data)
+    if not headers and not rows:
+        print_json(data)
+        return
+
+    writer = csv.writer(sys.stdout)
+    writer.writerow(headers)
+    writer.writerows(rows)
+
+
 def print_output(data: Any, fmt: OutputFormat) -> None:
     """Dispatch to the appropriate formatter based on *fmt*."""
     if fmt == OutputFormat.table:
         print_table(data)
+    elif fmt == OutputFormat.csv:
+        print_csv(data)
     else:
         print_json(data)
