@@ -4,7 +4,6 @@ import json
 from unittest.mock import patch
 
 import httpx
-import pytest
 from pytest_httpx import HTTPXMock
 from typer.testing import CliRunner
 
@@ -161,8 +160,7 @@ class TestListWorkspaces:
         result = runner.invoke(app, ["workspace", "list"])
         assert result.exit_code != 0
 
-    def test_list_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+    def test_list_no_token(self, no_token: None) -> None:
         result = runner.invoke(app, ["workspace", "list"])
         assert result.exit_code == 1
         assert TOKEN_ENV_VAR in result.output
@@ -215,8 +213,7 @@ class TestGetWorkspace:
         result = runner.invoke(app, ["workspace", "get", WORKSPACE_ID])
         assert result.exit_code != 0
 
-    def test_get_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+    def test_get_no_token(self, no_token: None) -> None:
         result = runner.invoke(app, ["workspace", "get", WORKSPACE_ID])
         assert result.exit_code == 1
         assert TOKEN_ENV_VAR in result.output
@@ -513,8 +510,7 @@ class TestWatchWorkspaceGet:
             )
         assert result.exit_code == 0
 
-    def test_watch_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+    def test_watch_no_token(self, no_token: None) -> None:
         result = runner.invoke(app, ["workspace", "get", WORKSPACE_ID, "--watch"])
         assert result.exit_code == 1
         assert TOKEN_ENV_VAR in result.output
@@ -545,8 +541,7 @@ class TestWatchWorkspaceList:
             )
         assert result.exit_code == 0
 
-    def test_watch_list_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+    def test_watch_list_no_token(self, no_token: None) -> None:
         result = runner.invoke(app, ["workspace", "list", "--watch"])
         assert result.exit_code == 1
         assert TOKEN_ENV_VAR in result.output
@@ -555,13 +550,13 @@ class TestWatchWorkspaceList:
 SSH_WORKSPACE = {
     **SAMPLE_WORKSPACE,
     "name": "My SSH Workspace",
-    "resource_meta": {"ip_address": "10.0.0.1"},
+    "resource_meta": {"ip": "10.0.0.1"},
 }
 
 SSH_WORKSPACE_WITH_USER = {
     **SAMPLE_WORKSPACE,
     "name": "My SSH Workspace",
-    "resource_meta": {"ip_address": "10.0.0.1", "username": "surf"},
+    "resource_meta": {"ip": "10.0.0.1", "instance_user": "surf"},
 }
 
 
@@ -667,8 +662,7 @@ class TestSshConfig:
         assert "My-SSH-Workspace" in result.output
         assert "Second-WS" in result.output
 
-    def test_ssh_config_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
+    def test_ssh_config_no_token(self, no_token: None) -> None:
         result = runner.invoke(app, ["workspace", "ssh-config"])
         assert result.exit_code == 1
         assert TOKEN_ENV_VAR in result.output

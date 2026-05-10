@@ -177,8 +177,11 @@ def create_workspace(
         raise typer.Exit(1) from exc
 
     with get_client() as client:
-        client._http.headers["Content-Type"] = f"application/json;{application_type}"
-        data = client.post("/workspaces/", json=body)
+        data = client.post(
+            "/workspaces/",
+            json=body,
+            content_type=f"application/json;{application_type}",
+        )
     print_json(data)
 
 
@@ -221,6 +224,9 @@ def delete_workspace(
     typer.echo(f"Workspace {workspace_id} deleted.")
 
 
+_VALID_ACTION_TYPES = {"pause", "resume", "reboot", "update_nsgs", "update_storages"}
+
+
 @app.command("action")
 def workspace_action(
     workspace_id: str = typer.Argument(..., help="Workspace ID."),
@@ -240,6 +246,11 @@ def workspace_action(
     ),
 ) -> None:
     """Trigger a single action on a workspace."""
+    if action_type not in _VALID_ACTION_TYPES:
+        valid = ", ".join(sorted(_VALID_ACTION_TYPES))
+        typer.echo(f"Invalid action_type '{action_type}'. Options: {valid}.", err=True)
+        raise typer.Exit(1)
+
     body: object = {}
     if params is not None:
         try:
@@ -252,8 +263,15 @@ def workspace_action(
         data = client.post(
             f"/workspaces/{workspace_id}/actions/{action_type}/",
             json=body,
+            content_type=f"application/json;{action_type}",
         )
     print_json(data)
+
+
+_VALID_ACTIONS = {
+    "create", "delete", "pause", "purge", "reboot", "release",
+    "resume", "update", "update_nsgs", "update_storages", "use",
+}
 
 
 @app.command("actions")
@@ -277,6 +295,16 @@ def workspace_actions(
     if not isinstance(body, list):
         typer.echo("Payload must be a JSON array of action objects.", err=True)
         raise typer.Exit(1)
+
+    for item in body:
+        if not isinstance(item, dict) or "action" not in item:
+            typer.echo("Each action object must have an 'action' field.", err=True)
+            raise typer.Exit(1)
+        action_val = item["action"]
+        if action_val not in _VALID_ACTIONS:
+            valid = ", ".join(sorted(_VALID_ACTIONS))
+            typer.echo(f"Invalid action '{action_val}'. Options: {valid}.", err=True)
+            raise typer.Exit(1)
 
     with get_client() as client:
         data = client.post(f"/workspaces/{workspace_id}/actions/", json=body)
@@ -315,9 +343,8 @@ def get_logs(
 ) -> None:
     """Retrieve the logs for a workspace."""
     with get_client() as client:
-        response = client._http.get(f"/workspaces/{workspace_id}/logs/")
-        response.raise_for_status()
-        typer.echo(response.text)
+        text = client.get_text(f"/workspaces/{workspace_id}/logs/")
+    typer.echo(text)
 
 
 def _ssh_config_entry(
@@ -331,10 +358,9 @@ def _ssh_config_entry(
     meta = workspace.get("meta") or {}
 
     hostname = (
-        resource_meta.get("ip_address")
-        or resource_meta.get("hostname")
-        or meta.get("ip_address")
-        or meta.get("hostname")
+        resource_meta.get("ip")
+        or resource_meta.get("workspace_fqdn")
+        or meta.get("workspace_fqdn")
     )
     if not hostname:
         return None
@@ -345,18 +371,10 @@ def _ssh_config_entry(
 
     effective_user = (
         user
-        or resource_meta.get("username")
-        or resource_meta.get("user")
-        or meta.get("username")
-        or meta.get("user")
+        or resource_meta.get("instance_user")
+        or meta.get("instance_user")
     )
-    effective_port = (
-        resource_meta.get("ssh_port")
-        or resource_meta.get("port")
-        or meta.get("ssh_port")
-        or meta.get("port")
-        or port
-    )
+    effective_port = port
 
     lines = [f"Host {host_alias}"]
     lines.append(f"    HostName {hostname}")

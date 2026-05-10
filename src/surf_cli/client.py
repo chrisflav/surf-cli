@@ -1,5 +1,6 @@
 """HTTP client for the SURF Research Cloud API."""
 
+import json as _json
 import os
 import sys
 import time
@@ -113,12 +114,20 @@ class SurfClient:
         raise_for_status(response)
         return response.json()
 
-    def post(self, path: str, json: Any) -> Any:
+    def post(self, path: str, json: Any, content_type: str | None = None) -> Any:
         """Send a POST request with a JSON body and return the parsed JSON response."""
-        return self._with_retry(lambda: self._post(path, json))
+        return self._with_retry(lambda: self._post(path, json, content_type))
 
-    def _post(self, path: str, json: Any) -> Any:
-        request = self._http.build_request("POST", path, json=json)
+    def _post(self, path: str, payload: Any, content_type: str | None = None) -> Any:
+        if content_type is not None:
+            request = self._http.build_request(
+                "POST",
+                path,
+                content=_json.dumps(payload).encode(),
+                headers={"Content-Type": content_type},
+            )
+        else:
+            request = self._http.build_request("POST", path, json=payload)
         if self._verbose:
             self._log_request(request)
         response = self._http.send(request)
@@ -126,6 +135,21 @@ class SurfClient:
             self._log_response(response)
         raise_for_status(response)
         return response.json()
+
+    def get_text(self, path: str, **params: Any) -> str:
+        """Send a GET request and return the response body as plain text."""
+        filtered = {k: v for k, v in params.items() if v is not None}
+        return self._with_retry(lambda: self._get_text(path, filtered))
+
+    def _get_text(self, path: str, params: dict[str, Any]) -> str:
+        request = self._http.build_request("GET", path, params=params)
+        if self._verbose:
+            self._log_request(request)
+        response = self._http.send(request)
+        if self._verbose:
+            self._log_response(response)
+        raise_for_status(response)
+        return response.text
 
     def patch(self, path: str, json: Any) -> Any:
         """Send a PATCH request with a JSON body and return the parsed JSON response."""
