@@ -31,7 +31,6 @@ PAGINATED_RESPONSE = {
 }
 
 
-
 class TestListCatalog:
     def test_list_basic(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(

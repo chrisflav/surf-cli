@@ -34,7 +34,6 @@ PAGINATED_RESPONSE = {
 }
 
 
-
 class TestListStorage:
     def test_list_format_json(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(
@@ -103,9 +102,7 @@ class TestListStorage:
             url=f"{BASE_URL}/storage/?limit=5&offset=10",
             json=PAGINATED_RESPONSE,
         )
-        result = runner.invoke(
-            app, ["storage", "list", "--limit", "5", "--offset", "10"]
-        )
+        result = runner.invoke(app, ["storage", "list", "--limit", "5", "--offset", "10"])
         assert result.exit_code == 0
 
     def test_list_invalid_limit(self) -> None:
@@ -193,9 +190,7 @@ class TestCreateStorage:
 
     def test_create_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
-        result = runner.invoke(
-            app, ["storage", "create", '{"name": "x", "co_id": "co-1"}']
-        )
+        result = runner.invoke(app, ["storage", "create", '{"name": "x", "co_id": "co-1"}'])
         assert result.exit_code == 1
         assert TOKEN_ENV_VAR in result.output
 
@@ -208,9 +203,7 @@ class TestUpdateStorage:
             method="PATCH",
             json=updated,
         )
-        result = runner.invoke(
-            app, ["storage", "update", STORAGE_ID, "--name", "renamed-storage"]
-        )
+        result = runner.invoke(app, ["storage", "update", STORAGE_ID, "--name", "renamed-storage"])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert data["name"] == "renamed-storage"
@@ -235,9 +228,7 @@ class TestUpdateStorage:
 
     def test_update_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
-        result = runner.invoke(
-            app, ["storage", "update", STORAGE_ID, "--name", "x"]
-        )
+        result = runner.invoke(app, ["storage", "update", STORAGE_ID, "--name", "x"])
         assert result.exit_code == 1
         assert TOKEN_ENV_VAR in result.output
 

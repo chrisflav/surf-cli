@@ -25,9 +25,7 @@ def list_cos(
     name: Optional[str] = typer.Option(
         None, "--name", "-n", help="Search by collaborative organisation name."
     ),
-    offset: Optional[int] = typer.Option(
-        None, "--offset", help="Offset for pagination."
-    ),
+    offset: Optional[int] = typer.Option(None, "--offset", help="Offset for pagination."),
     fmt: OutputFormat = typer.Option(
         OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
@@ -111,9 +109,7 @@ def update_co(
 @app.command("delete")
 def delete_co(
     co_id: str = typer.Argument(..., help="Collaborative organisation ID."),
-    confirm: bool = typer.Option(
-        False, "--yes", "-y", help="Skip confirmation prompt."
-    ),
+    confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt."),
 ) -> None:
     """Delete a collaborative organisation by ID."""
     if not confirm:
@@ -129,9 +125,7 @@ def list_members(
     limit: Optional[int] = typer.Option(
         None, "--limit", "-l", help="Maximum number of results to return."
     ),
-    offset: Optional[int] = typer.Option(
-        None, "--offset", help="Offset for pagination."
-    ),
+    offset: Optional[int] = typer.Option(None, "--offset", help="Offset for pagination."),
     fmt: OutputFormat = typer.Option(
         OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
@@ -173,9 +167,7 @@ def add_member(
 def remove_member(
     co_id: str = typer.Argument(..., help="Collaborative organisation ID."),
     user_id: str = typer.Argument(..., help="User ID to remove."),
-    confirm: bool = typer.Option(
-        False, "--yes", "-y", help="Skip confirmation prompt."
-    ),
+    confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt."),
 ) -> None:
     """Remove a member from a collaborative organisation."""
     if not confirm:

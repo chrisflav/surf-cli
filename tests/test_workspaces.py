@@ -17,6 +17,7 @@ def _strip_separators(output: str) -> str:
     """Remove watch-mode separator lines (--- ... ---) from captured output."""
     return "\n".join(line for line in output.splitlines() if not line.startswith("---"))
 
+
 WORKSPACE_ID = "ws-123"
 BASE_URL = "https://gw.live.surfresearchcloud.nl/v1/workspace"
 
@@ -46,7 +47,6 @@ PAGINATED_RESPONSE = {
     "previous": None,
     "results": [SAMPLE_WORKSPACE],
 }
-
 
 
 class TestListWorkspaces:
@@ -373,9 +373,7 @@ class TestWorkspaceActions:
         assert result.exit_code == 1
 
     def test_actions_not_a_list(self) -> None:
-        result = runner.invoke(
-            app, ["workspace", "actions", WORKSPACE_ID, '{"action": "pause"}']
-        )
+        result = runner.invoke(app, ["workspace", "actions", WORKSPACE_ID, '{"action": "pause"}'])
         assert result.exit_code == 1
         assert "array" in result.output
 
@@ -456,7 +454,16 @@ class TestWatchWorkspaceGet:
         with patch("surf_cli.commands.workspaces.time.sleep") as mock_sleep:
             result = runner.invoke(
                 app,
-                ["workspace", "get", WORKSPACE_ID, "--watch", "--until-status", "running", "--interval", "1"],
+                [
+                    "workspace",
+                    "get",
+                    WORKSPACE_ID,
+                    "--watch",
+                    "--until-status",
+                    "running",
+                    "--interval",
+                    "1",
+                ],
             )
         assert result.exit_code == 0
         mock_sleep.assert_not_called()
@@ -471,7 +478,16 @@ class TestWatchWorkspaceGet:
         with patch("surf_cli.commands.workspaces.time.sleep"):
             result = runner.invoke(
                 app,
-                ["workspace", "get", WORKSPACE_ID, "--watch", "--until-status", "running", "--interval", "1"],
+                [
+                    "workspace",
+                    "get",
+                    WORKSPACE_ID,
+                    "--watch",
+                    "--until-status",
+                    "running",
+                    "--interval",
+                    "1",
+                ],
             )
         assert result.exit_code == 0
         # Output contains two pretty-printed JSON objects; parse them with a streaming decoder.
@@ -489,7 +505,9 @@ class TestWatchWorkspaceGet:
         assert statuses == ["creating", "running"]
 
     def test_watch_keyboard_interrupt(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/", json=SAMPLE_WORKSPACE)
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/", json=SAMPLE_WORKSPACE
+        )
 
         def _raise_interrupt(seconds: int) -> None:
             raise KeyboardInterrupt
@@ -502,7 +520,9 @@ class TestWatchWorkspaceGet:
         assert result.exit_code == 0
 
     def test_watch_short_flag(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/", json=SAMPLE_WORKSPACE)
+        httpx_mock.add_response(
+            url=f"{BASE_URL}/workspaces/{WORKSPACE_ID}/", json=SAMPLE_WORKSPACE
+        )
         with patch("surf_cli.commands.workspaces.time.sleep", side_effect=KeyboardInterrupt):
             result = runner.invoke(
                 app,

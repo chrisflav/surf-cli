@@ -72,7 +72,9 @@ def test_surf_api_error_is_base() -> None:
 
 
 def test_error_with_non_json_body() -> None:
-    response = httpx.Response(500, content=b"Internal Server Error", headers={"content-type": "text/plain"})
+    response = httpx.Response(
+        500, content=b"Internal Server Error", headers={"content-type": "text/plain"}
+    )
     with pytest.raises(ServerError) as exc_info:
         raise_for_status(response)
     assert "Internal Server Error" in str(exc_info.value)

@@ -218,7 +218,12 @@ class TestPrintOutput:
         assert lines[1] == "1,foo"
 
     def test_csv_format_paginated(self, capsys: pytest.CaptureFixture) -> None:
-        data = {"count": 1, "next": None, "previous": None, "results": [{"id": "1", "name": "foo"}]}
+        data = {
+            "count": 1,
+            "next": None,
+            "previous": None,
+            "results": [{"id": "1", "name": "foo"}],
+        }
         print_output(data, OutputFormat.csv)
         captured = capsys.readouterr()
         lines = captured.out.splitlines()

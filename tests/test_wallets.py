@@ -32,7 +32,6 @@ PAGINATED_RESPONSE = {
 }
 
 
-
 class TestListWallets:
     def test_list_format_json(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(url=f"{BASE_URL}/wallets/", json=PAGINATED_RESPONSE)
@@ -56,16 +55,12 @@ class TestListWallets:
         assert data["count"] == 1
 
     def test_list_with_name_filter(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/wallets/?name=My+Wallet", json=PAGINATED_RESPONSE
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/wallets/?name=My+Wallet", json=PAGINATED_RESPONSE)
         result = runner.invoke(app, ["wallet", "list", "--name", "My Wallet"])
         assert result.exit_code == 0
 
     def test_list_with_co_id_filter(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/wallets/?co_id=co-1", json=PAGINATED_RESPONSE
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/wallets/?co_id=co-1", json=PAGINATED_RESPONSE)
         result = runner.invoke(app, ["wallet", "list", "--co-id", "co-1"])
         assert result.exit_code == 0
 
@@ -73,9 +68,7 @@ class TestListWallets:
         httpx_mock.add_response(
             url=f"{BASE_URL}/wallets/?limit=5&offset=10", json=PAGINATED_RESPONSE
         )
-        result = runner.invoke(
-            app, ["wallet", "list", "--limit", "5", "--offset", "10"]
-        )
+        result = runner.invoke(app, ["wallet", "list", "--limit", "5", "--offset", "10"])
         assert result.exit_code == 0
 
     def test_list_invalid_limit(self) -> None:
@@ -99,26 +92,20 @@ class TestListWallets:
 
 class TestGetWallet:
     def test_get_format_json(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/wallets/{WALLET_ID}/", json=SAMPLE_WALLET
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/wallets/{WALLET_ID}/", json=SAMPLE_WALLET)
         result = runner.invoke(app, ["wallet", "get", WALLET_ID, "--format", "json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert data["id"] == WALLET_ID
 
     def test_get_format_table(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/wallets/{WALLET_ID}/", json=SAMPLE_WALLET
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/wallets/{WALLET_ID}/", json=SAMPLE_WALLET)
         result = runner.invoke(app, ["wallet", "get", WALLET_ID, "--format", "table"])
         assert result.exit_code == 0
         assert WALLET_ID in result.output
 
     def test_get(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/wallets/{WALLET_ID}/", json=SAMPLE_WALLET
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/wallets/{WALLET_ID}/", json=SAMPLE_WALLET)
         result = runner.invoke(app, ["wallet", "get", WALLET_ID])
         assert result.exit_code == 0
         data = json.loads(result.output)
@@ -126,9 +113,7 @@ class TestGetWallet:
         assert data["name"] == "My Wallet"
 
     def test_get_not_found(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/wallets/{WALLET_ID}/", status_code=404
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/wallets/{WALLET_ID}/", status_code=404)
         result = runner.invoke(app, ["wallet", "get", WALLET_ID])
         assert result.exit_code != 0
 
@@ -160,9 +145,7 @@ class TestCreateWallet:
 
     def test_create_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv(TOKEN_ENV_VAR, raising=False)
-        result = runner.invoke(
-            app, ["wallet", "create", '{"name": "x", "co_id": "co-1"}']
-        )
+        result = runner.invoke(app, ["wallet", "create", '{"name": "x", "co_id": "co-1"}'])
         assert result.exit_code == 1
         assert TOKEN_ENV_VAR in result.output
 
@@ -173,9 +156,7 @@ class TestUpdateWallet:
         httpx_mock.add_response(
             url=f"{BASE_URL}/wallets/{WALLET_ID}/", method="PATCH", json=updated
         )
-        result = runner.invoke(
-            app, ["wallet", "update", WALLET_ID, "--name", "Renamed Wallet"]
-        )
+        result = runner.invoke(app, ["wallet", "update", WALLET_ID, "--name", "Renamed Wallet"])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert data["name"] == "Renamed Wallet"

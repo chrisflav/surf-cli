@@ -43,7 +43,6 @@ MEMBERS_RESPONSE = {
 }
 
 
-
 class TestListCOs:
     def test_list_format_json(self, httpx_mock: HTTPXMock) -> None:
         httpx_mock.add_response(url=f"{BASE_URL}/co/", json=PAGINATED_RESPONSE)
@@ -74,9 +73,7 @@ class TestListCOs:
         assert result.exit_code == 0
 
     def test_list_with_pagination(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/co/?limit=5&offset=10", json=PAGINATED_RESPONSE
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/co/?limit=5&offset=10", json=PAGINATED_RESPONSE)
         result = runner.invoke(app, ["co", "list", "--limit", "5", "--offset", "10"])
         assert result.exit_code == 0
 
@@ -158,9 +155,7 @@ class TestCreateCO:
 class TestUpdateCO:
     def test_update_name(self, httpx_mock: HTTPXMock) -> None:
         updated = {**SAMPLE_CO, "name": "New Name"}
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/co/{CO_ID}/", method="PATCH", json=updated
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/co/{CO_ID}/", method="PATCH", json=updated)
         result = runner.invoke(app, ["co", "update", CO_ID, "--name", "New Name"])
         assert result.exit_code == 0
         data = json.loads(result.output)
@@ -168,9 +163,7 @@ class TestUpdateCO:
 
     def test_update_description(self, httpx_mock: HTTPXMock) -> None:
         updated = {**SAMPLE_CO, "description": "Updated description"}
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/co/{CO_ID}/", method="PATCH", json=updated
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/co/{CO_ID}/", method="PATCH", json=updated)
         result = runner.invoke(
             app, ["co", "update", CO_ID, "--description", "Updated description"]
         )
@@ -190,9 +183,7 @@ class TestUpdateCO:
 
 class TestDeleteCO:
     def test_delete_with_confirm_flag(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/co/{CO_ID}/", method="DELETE", status_code=204
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/co/{CO_ID}/", method="DELETE", status_code=204)
         result = runner.invoke(app, ["co", "delete", CO_ID, "--yes"])
         assert result.exit_code == 0
         assert CO_ID in result.output
@@ -202,9 +193,7 @@ class TestDeleteCO:
         assert result.exit_code != 0
 
     def test_delete_prompt_confirm(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/co/{CO_ID}/", method="DELETE", status_code=204
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/co/{CO_ID}/", method="DELETE", status_code=204)
         result = runner.invoke(app, ["co", "delete", CO_ID], input="y\n")
         assert result.exit_code == 0
 
@@ -217,27 +206,21 @@ class TestDeleteCO:
 
 class TestListMembers:
     def test_list_members_format_json(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/co/{CO_ID}/members/", json=MEMBERS_RESPONSE
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/co/{CO_ID}/members/", json=MEMBERS_RESPONSE)
         result = runner.invoke(app, ["co", "members", CO_ID, "--format", "json"])
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert data["count"] == 1
 
     def test_list_members_format_table(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/co/{CO_ID}/members/", json=MEMBERS_RESPONSE
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/co/{CO_ID}/members/", json=MEMBERS_RESPONSE)
         result = runner.invoke(app, ["co", "members", CO_ID, "--format", "table"])
         assert result.exit_code == 0
         assert "━" in result.output
         assert USER_ID in result.output
 
     def test_list_members(self, httpx_mock: HTTPXMock) -> None:
-        httpx_mock.add_response(
-            url=f"{BASE_URL}/co/{CO_ID}/members/", json=MEMBERS_RESPONSE
-        )
+        httpx_mock.add_response(url=f"{BASE_URL}/co/{CO_ID}/members/", json=MEMBERS_RESPONSE)
         result = runner.invoke(app, ["co", "members", CO_ID])
         assert result.exit_code == 0
         data = json.loads(result.output)
@@ -248,9 +231,7 @@ class TestListMembers:
             url=f"{BASE_URL}/co/{CO_ID}/members/?limit=5&offset=0",
             json=MEMBERS_RESPONSE,
         )
-        result = runner.invoke(
-            app, ["co", "members", CO_ID, "--limit", "5", "--offset", "0"]
-        )
+        result = runner.invoke(app, ["co", "members", CO_ID, "--limit", "5", "--offset", "0"])
         assert result.exit_code == 0
 
     def test_list_members_invalid_limit(self) -> None:
@@ -310,16 +291,12 @@ class TestRemoveMember:
             method="DELETE",
             status_code=204,
         )
-        result = runner.invoke(
-            app, ["co", "remove-member", CO_ID, USER_ID, "--yes"]
-        )
+        result = runner.invoke(app, ["co", "remove-member", CO_ID, USER_ID, "--yes"])
         assert result.exit_code == 0
         assert USER_ID in result.output
 
     def test_remove_member_prompt_abort(self) -> None:
-        result = runner.invoke(
-            app, ["co", "remove-member", CO_ID, USER_ID], input="n\n"
-        )
+        result = runner.invoke(app, ["co", "remove-member", CO_ID, USER_ID], input="n\n")
         assert result.exit_code != 0
 
     def test_remove_member_prompt_confirm(self, httpx_mock: HTTPXMock) -> None:
@@ -328,9 +305,7 @@ class TestRemoveMember:
             method="DELETE",
             status_code=204,
         )
-        result = runner.invoke(
-            app, ["co", "remove-member", CO_ID, USER_ID], input="y\n"
-        )
+        result = runner.invoke(app, ["co", "remove-member", CO_ID, USER_ID], input="y\n")
         assert result.exit_code == 0
 
     def test_remove_member_no_token(self, monkeypatch: pytest.MonkeyPatch) -> None:

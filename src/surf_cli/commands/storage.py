@@ -29,9 +29,7 @@ def list_storage(
     name: Optional[str] = typer.Option(
         None, "--name", "-n", help="Search by storage volume name."
     ),
-    offset: Optional[int] = typer.Option(
-        None, "--offset", help="Offset for pagination."
-    ),
+    offset: Optional[int] = typer.Option(None, "--offset", help="Offset for pagination."),
     status: Optional[str] = typer.Option(
         None,
         "--status",
@@ -57,8 +55,13 @@ def list_storage(
         raise typer.Exit(1)
     with get_client() as client:
         data = storage_api.list_storage(
-            client, co_id=co_id, limit=limit, name=name, offset=offset,
-            status=status, wallet_id=wallet_id
+            client,
+            co_id=co_id,
+            limit=limit,
+            name=name,
+            offset=offset,
+            status=status,
+            wallet_id=wallet_id,
         )
     print_output(data, fmt)
 
@@ -104,9 +107,7 @@ def create_storage(
 @app.command("update")
 def update_storage(
     storage_id: str = typer.Argument(..., help="Storage volume ID."),
-    name: Optional[str] = typer.Option(
-        None, "--name", "-n", help="New storage volume name."
-    ),
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="New storage volume name."),
     end_time: Optional[str] = typer.Option(
         None,
         "--end-time",
@@ -132,9 +133,7 @@ def update_storage(
 @app.command("delete")
 def delete_storage(
     storage_id: str = typer.Argument(..., help="Storage volume ID."),
-    confirm: bool = typer.Option(
-        False, "--yes", "-y", help="Skip confirmation prompt."
-    ),
+    confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt."),
 ) -> None:
     """Delete a storage volume by ID."""
     if not confirm:

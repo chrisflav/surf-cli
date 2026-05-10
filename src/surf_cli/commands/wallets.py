@@ -26,12 +26,8 @@ def list_wallets(
     limit: Optional[int] = typer.Option(
         None, "--limit", "-l", help="Maximum number of results to return."
     ),
-    name: Optional[str] = typer.Option(
-        None, "--name", "-n", help="Search by wallet name."
-    ),
-    offset: Optional[int] = typer.Option(
-        None, "--offset", help="Offset for pagination."
-    ),
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="Search by wallet name."),
+    offset: Optional[int] = typer.Option(None, "--offset", help="Offset for pagination."),
     fmt: OutputFormat = typer.Option(
         OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
@@ -89,9 +85,7 @@ def create_wallet(
 @app.command("update")
 def update_wallet(
     wallet_id: str = typer.Argument(..., help="Wallet ID."),
-    name: Optional[str] = typer.Option(
-        None, "--name", "-n", help="New wallet name."
-    ),
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="New wallet name."),
     description: Optional[str] = typer.Option(
         None, "--description", "-d", help="New wallet description."
     ),
@@ -115,9 +109,7 @@ def update_wallet(
 @app.command("delete")
 def delete_wallet(
     wallet_id: str = typer.Argument(..., help="Wallet ID."),
-    confirm: bool = typer.Option(
-        False, "--yes", "-y", help="Skip confirmation prompt."
-    ),
+    confirm: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt."),
 ) -> None:
     """Delete a wallet by ID."""
     if not confirm:

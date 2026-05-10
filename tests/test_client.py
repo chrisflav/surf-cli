@@ -93,7 +93,9 @@ def test_delete_success(httpx_mock: HTTPXMock) -> None:
 
 
 def test_authentication_error_401(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=401, json={"detail": "Invalid token."})
+    httpx_mock.add_response(
+        url=f"{API_BASE_URL}/items", status_code=401, json={"detail": "Invalid token."}
+    )
     with SurfClient(token="bad-token") as client:
         with pytest.raises(AuthenticationError) as exc_info:
             client.get("/items")
@@ -101,7 +103,9 @@ def test_authentication_error_401(httpx_mock: HTTPXMock) -> None:
 
 
 def test_authentication_error_403(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=403, json={"detail": "Forbidden."})
+    httpx_mock.add_response(
+        url=f"{API_BASE_URL}/items", status_code=403, json={"detail": "Forbidden."}
+    )
     with SurfClient(token="tok") as client:
         with pytest.raises(AuthenticationError) as exc_info:
             client.get("/items")
@@ -109,7 +113,9 @@ def test_authentication_error_403(httpx_mock: HTTPXMock) -> None:
 
 
 def test_not_found_error(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url=f"{API_BASE_URL}/items/999", status_code=404, json={"detail": "Not found."})
+    httpx_mock.add_response(
+        url=f"{API_BASE_URL}/items/999", status_code=404, json={"detail": "Not found."}
+    )
     with SurfClient(token="tok") as client:
         with pytest.raises(NotFoundError) as exc_info:
             client.get("/items/999")
@@ -117,7 +123,9 @@ def test_not_found_error(httpx_mock: HTTPXMock) -> None:
 
 
 def test_rate_limit_error(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=429, json={"detail": "Too many requests."})
+    httpx_mock.add_response(
+        url=f"{API_BASE_URL}/items", status_code=429, json={"detail": "Too many requests."}
+    )
     with SurfClient(token="tok", max_retries=0) as client:
         with pytest.raises(RateLimitError) as exc_info:
             client.get("/items")
@@ -125,7 +133,9 @@ def test_rate_limit_error(httpx_mock: HTTPXMock) -> None:
 
 
 def test_server_error(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=500, json={"detail": "Internal server error."})
+    httpx_mock.add_response(
+        url=f"{API_BASE_URL}/items", status_code=500, json={"detail": "Internal server error."}
+    )
     with SurfClient(token="tok", max_retries=0) as client:
         with pytest.raises(ServerError) as exc_info:
             client.get("/items")
@@ -133,7 +143,9 @@ def test_server_error(httpx_mock: HTTPXMock) -> None:
 
 
 def test_generic_api_error(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=422, json={"detail": "Unprocessable entity."})
+    httpx_mock.add_response(
+        url=f"{API_BASE_URL}/items", status_code=422, json={"detail": "Unprocessable entity."}
+    )
     with SurfClient(token="tok") as client:
         with pytest.raises(SurfAPIError) as exc_info:
             client.get("/items")
@@ -141,7 +153,9 @@ def test_generic_api_error(httpx_mock: HTTPXMock) -> None:
 
 
 def test_error_includes_response(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=401, json={"detail": "Invalid token."})
+    httpx_mock.add_response(
+        url=f"{API_BASE_URL}/items", status_code=401, json={"detail": "Invalid token."}
+    )
     with SurfClient(token="bad") as client:
         with pytest.raises(AuthenticationError) as exc_info:
             client.get("/items")
@@ -177,7 +191,9 @@ def test_retry_on_rate_limit_succeeds(httpx_mock: HTTPXMock) -> None:
 
 def test_retry_exhausted_raises_last_exception(httpx_mock: HTTPXMock) -> None:
     for _ in range(4):  # 1 initial + 3 retries
-        httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=500, json={"detail": "err"})
+        httpx_mock.add_response(
+            url=f"{API_BASE_URL}/items", status_code=500, json={"detail": "err"}
+        )
     with patch("surf_cli.client.time.sleep", _no_sleep):
         with SurfClient(token="tok", max_retries=3, retry_delay=0) as client:
             with pytest.raises(ServerError):
@@ -220,7 +236,9 @@ def test_retry_respects_retry_after_header(httpx_mock: HTTPXMock) -> None:
 
 def test_retry_exponential_backoff_delays(httpx_mock: HTTPXMock) -> None:
     for _ in range(3):
-        httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=500, json={"detail": "err"})
+        httpx_mock.add_response(
+            url=f"{API_BASE_URL}/items", status_code=500, json={"detail": "err"}
+        )
     httpx_mock.add_response(url=f"{API_BASE_URL}/items", json={"ok": True})
     sleep_calls: list[float] = []
     with patch("surf_cli.client.time.sleep", sleep_calls.append):
@@ -264,7 +282,9 @@ def test_client_custom_retry_params() -> None:
 
 
 def test_retry_post_on_server_error(httpx_mock: HTTPXMock) -> None:
-    httpx_mock.add_response(url=f"{API_BASE_URL}/items", status_code=503, json={"detail": "unavail"})
+    httpx_mock.add_response(
+        url=f"{API_BASE_URL}/items", status_code=503, json={"detail": "unavail"}
+    )
     httpx_mock.add_response(url=f"{API_BASE_URL}/items", json={"id": 1}, status_code=201)
     with patch("surf_cli.client.time.sleep", _no_sleep):
         with SurfClient(token="tok", max_retries=3, retry_delay=0) as client:

@@ -25,12 +25,8 @@ def list_catalog(
     limit: Optional[int] = typer.Option(
         None, "--limit", "-l", help="Maximum number of results to return."
     ),
-    name: Optional[str] = typer.Option(
-        None, "--name", "-n", help="Search by catalog item name."
-    ),
-    offset: Optional[int] = typer.Option(
-        None, "--offset", help="Offset for pagination."
-    ),
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="Search by catalog item name."),
+    offset: Optional[int] = typer.Option(None, "--offset", help="Offset for pagination."),
     type_: Optional[str] = typer.Option(
         None,
         "--type",

@@ -15,7 +15,13 @@ from typing import Any, Optional, Union
 import typer
 
 import surf_cli.api.workspaces as ws_api
-from surf_cli.formatting import OutputFormat, get_client, print_json, print_output, _to_serializable
+from surf_cli.formatting import (
+    OutputFormat,
+    get_client,
+    print_json,
+    print_output,
+    _to_serializable,
+)
 from surf_cli.models import (
     ActionRequestNsgsSchema,
     ActionRequestStorageSchema,
@@ -60,9 +66,7 @@ def _watch_loop(
             if until_status:
                 reached = False
                 if isinstance(data, _PAGINATED_TYPES):
-                    reached = any(
-                        item.status == until_status for item in data.results
-                    )
+                    reached = any(item.status == until_status for item in data.results)
                 elif hasattr(data, "status"):
                     reached = data.status == until_status
                 if reached:
@@ -86,9 +90,15 @@ def list_workspaces(
         "--by-owner",
         help="If 'true', return only workspaces owned by the authenticated user.",
     ),
-    co_id: Optional[str] = typer.Option(None, "--co-id", help="Filter by collaborative organisation ID."),
-    deleted: Optional[str] = typer.Option(None, "--deleted", help="Include deleted workspaces. Options: true, false."),
-    limit: Optional[int] = typer.Option(None, "--limit", "-l", help="Maximum number of results to return."),
+    co_id: Optional[str] = typer.Option(
+        None, "--co-id", help="Filter by collaborative organisation ID."
+    ),
+    deleted: Optional[str] = typer.Option(
+        None, "--deleted", help="Include deleted workspaces. Options: true, false."
+    ),
+    limit: Optional[int] = typer.Option(
+        None, "--limit", "-l", help="Maximum number of results to return."
+    ),
     name: Optional[str] = typer.Option(None, "--name", "-n", help="Search by workspace name."),
     offset: Optional[int] = typer.Option(None, "--offset", help="Offset for pagination."),
     status: Optional[str] = typer.Option(
@@ -101,12 +111,16 @@ def list_workspaces(
             "unhealthy, rebooting, unaccounted."
         ),
     ),
-    wallet_id: Optional[str] = typer.Option(None, "--wallet-id", "-w", help="Filter by wallet ID."),
+    wallet_id: Optional[str] = typer.Option(
+        None, "--wallet-id", "-w", help="Filter by wallet ID."
+    ),
     fmt: OutputFormat = typer.Option(
         OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
     watch: bool = typer.Option(False, "--watch", help="Poll for updates at a regular interval."),
-    interval: int = typer.Option(5, "--interval", help="Polling interval in seconds (used with --watch)."),
+    interval: int = typer.Option(
+        5, "--interval", help="Polling interval in seconds (used with --watch)."
+    ),
     until_status: Optional[str] = typer.Option(
         None,
         "--until-status",
@@ -145,8 +159,7 @@ def list_workspaces(
         if isinstance(raw, dict) and "results" in raw:
             raw = dict(raw)
             raw["results"] = [
-                {k: row.get(k) for k in _LIST_TABLE_COLUMNS}
-                for row in raw["results"]
+                {k: row.get(k) for k in _LIST_TABLE_COLUMNS} for row in raw["results"]
             ]
         return raw
 
@@ -162,8 +175,12 @@ def get_workspace(
     fmt: OutputFormat = typer.Option(
         OutputFormat.json, "--format", "-f", help="Output format. Options: json, table, csv."
     ),
-    watch: bool = typer.Option(False, "--watch", "-W", help="Poll for updates at a regular interval."),
-    interval: int = typer.Option(5, "--interval", help="Polling interval in seconds (used with --watch)."),
+    watch: bool = typer.Option(
+        False, "--watch", "-W", help="Poll for updates at a regular interval."
+    ),
+    interval: int = typer.Option(
+        5, "--interval", help="Polling interval in seconds (used with --watch)."
+    ),
     until_status: Optional[str] = typer.Option(
         None,
         "--until-status",
@@ -292,8 +309,17 @@ def workspace_action(
 
 
 _VALID_ACTIONS = {
-    "create", "delete", "pause", "purge", "reboot", "release",
-    "resume", "update", "update_nsgs", "update_storages", "use",
+    "create",
+    "delete",
+    "pause",
+    "purge",
+    "reboot",
+    "release",
+    "resume",
+    "update",
+    "update_nsgs",
+    "update_storages",
+    "use",
 }
 
 
@@ -343,9 +369,7 @@ def change_wallet(
     wallet_name: Optional[str] = typer.Option(None, "--wallet-name", help="New wallet name."),
 ) -> None:
     """Change the wallet associated with a workspace."""
-    request = PatchedWorkspaceChangeWalletRequest(
-        wallet_id=wallet_id, wallet_name=wallet_name
-    )
+    request = PatchedWorkspaceChangeWalletRequest(wallet_id=wallet_id, wallet_name=wallet_name)
     with get_client() as client:
         result = ws_api.change_wallet(client, workspace_id, request)
     print_json(result)
@@ -383,9 +407,8 @@ def _ssh_config_entry(
 
     hostname = None
     if resource_meta is not None:
-        hostname = (
-            getattr(resource_meta, "ip", None)
-            or getattr(resource_meta, "workspace_fqdn", None)
+        hostname = getattr(resource_meta, "ip", None) or getattr(
+            resource_meta, "workspace_fqdn", None
         )
     if not hostname and meta is not None:
         hostname = getattr(meta, "workspace_fqdn", None)

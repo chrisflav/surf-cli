@@ -113,7 +113,9 @@ class TestConfigValidateCommand:
         assert "valid" in result.output.lower()
         mock_client.get.assert_called_once_with("/workspaces/", limit=1)
 
-    def test_validate_invalid_token(self, tmp_config: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_validate_invalid_token(
+        self, tmp_config: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         from unittest.mock import MagicMock, patch
 
         from surf_cli.exceptions import AuthenticationError
@@ -122,7 +124,9 @@ class TestConfigValidateCommand:
         mock_client = MagicMock()
         mock_client.__enter__ = MagicMock(return_value=mock_client)
         mock_client.__exit__ = MagicMock(return_value=False)
-        mock_client.get.side_effect = AuthenticationError("HTTP 401: Unauthorized", status_code=401)
+        mock_client.get.side_effect = AuthenticationError(
+            "HTTP 401: Unauthorized", status_code=401
+        )
 
         with patch("surf_cli.main.get_client", return_value=mock_client):
             result = runner.invoke(app, ["config", "validate"])
